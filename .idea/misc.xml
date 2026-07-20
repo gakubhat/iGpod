@@ -21,7 +21,7 @@
   </component>
   <component name="EntryPointsManager">
     <entry_points version="2.0">
-      <entry_point TYPE="method" FQNAME="org.akanework.gramophone.ui.components.FullBottomSheet$-1 void onStartTrackingTouch(com.google.android.material.slider.Slider slider)" />
+      <entry_point TYPE="method" FQNAME="com.igeeta.igpod.ui.components.FullBottomSheet$-1 void onStartTrackingTouch(com.google.android.material.slider.Slider slider)" />
     </entry_points>
     <list size="1">
       <item index="0" class="java.lang.String" itemvalue="com.bumptech.glide.annotation.GlideModule" />

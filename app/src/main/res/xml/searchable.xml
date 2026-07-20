@@ -4,7 +4,7 @@
     android:hint="@string/search_hint"
     android:searchSuggestAuthority="${applicationId}.search"
     android:searchSuggestSelection=" ?"
-    android:searchSuggestIntentAction="org.akanework.gramophone.action.PLAY_MEDIA_FROM_SUGGESTION"
+    android:searchSuggestIntentAction="com.igeeta.igpod.action.PLAY_MEDIA_FROM_SUGGESTION"
     android:includeInGlobalSearch="true"
     android:searchSettingsDescription="@string/search_desc"
     android:queryAfterZeroResults="true" />

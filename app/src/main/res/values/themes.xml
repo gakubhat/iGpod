@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.Gramophone" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
-        <item name="viewInflaterClass">org.akanework.gramophone.logic.ui.ViewCompatInflater</item>
+        <item name="viewInflaterClass">com.igeeta.igpod.logic.ui.ViewCompatInflater</item>
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.App.BottomSheetDialog</item>
         <item name="textAppearanceLargePopupMenu">@style/TextAppearance.App.BodyLarge</item>
         <item name="textAppearanceSmallPopupMenu">@style/TextAppearance.App.BodyLarge</item>
@@ -136,7 +136,7 @@
     </style>
 
     <style name="Base.Night.Theme.Splash" parent="Theme.SplashScreen">
-        <item name="viewInflaterClass">org.akanework.gramophone.logic.ui.ViewCompatInflater</item>
+        <item name="viewInflaterClass">com.igeeta.igpod.logic.ui.ViewCompatInflater</item>
         <item name="postSplashScreenTheme">@style/Theme.Gramophone</item>
     </style>
 

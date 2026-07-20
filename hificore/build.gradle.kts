@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "org.nift4.gramophone.hificore"
+    namespace = "com.igeeta.igpod.hificore"
     compileSdk = 36
 
     defaultConfig {

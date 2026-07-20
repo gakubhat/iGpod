@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<org.akanework.gramophone.logic.ui.MyRecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.igeeta.igpod.logic.ui.MyRecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/recyclerview"
     android:layout_width="match_parent"
@@ -8,5 +8,5 @@
     android:contentDescription="@string/list"
     android:scrollbars="none"
     app:hasFixedSize="true"
-    app:layoutManager="org.akanework.gramophone.ui.components.CustomGridLayoutManager"
+    app:layoutManager="com.igeeta.igpod.ui.components.CustomGridLayoutManager"
     app:useGridPaddingDecoration="true" />

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="org.akanework.gramophone">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.hardware.audio.output" android:required="false"/>
     <uses-feature android:name="android.hardware.audio.pro" android:required="false"/>
@@ -77,7 +76,7 @@
         <activity
             android:name=".logic.ui.BugHandlerActivity"
             android:exported="false"
-            android:taskAffinity="org.akanework.gramophone.crashLog" />
+            android:taskAffinity="com.igeeta.igpod.crashLog" />
 
         <service
             android:name=".logic.GramophonePlaybackService"
@@ -108,7 +107,7 @@
                 <!-- extras: https://developer.android.com/guide/components/intents-common#PlaySearch -->
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <!-- extras: item_name(str) -->
-                <action android:name="org.akanework.gramophone.action.SHUFFLE" />
+                <action android:name="com.igeeta.igpod.action.SHUFFLE" />
                 <!-- extras: query(str) -->
                 <action android:name="com.google.android.gms.actions.SEARCH_ACTION"/>
 

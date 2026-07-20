@@ -7,17 +7,17 @@
         <intent
             android:action="android.intent.action.SEARCH"
             android:targetPackage="${applicationId}"
-            android:targetClass="org.akanework.gramophone.ui.MainActivity">
+            android:targetClass="com.igeeta.igpod.ui.MainActivity">
             <parameter android:name="thing.name" android:key="query" android:required="true"/>
         </intent>
     </capability>
     <capability
-        android:name="org.akanework.gramophone.actions.intent.SHUFFLE"
+        android:name="com.igeeta.igpod.actions.intent.SHUFFLE"
         app:queryPatterns="@array/shuffle_all_queries">
         <intent
-            android:action="org.akanework.gramophone.action.SHUFFLE"
+            android:action="com.igeeta.igpod.action.SHUFFLE"
             android:targetPackage="${applicationId}"
-            android:targetClass="org.akanework.gramophone.ui.MainActivity">
+            android:targetClass="com.igeeta.igpod.ui.MainActivity">
         <parameter
             android:name="item_name"
             android:key="item_name"
@@ -31,9 +31,9 @@
         android:shortcutShortLabel="@string/shuffle"
         android:shortcutLongLabel="@string/shuffle_all">
         <intent
-            android:action="org.akanework.gramophone.action.SHUFFLE"
+            android:action="com.igeeta.igpod.action.SHUFFLE"
             android:targetPackage="${applicationId}"
-            android:targetClass="org.akanework.gramophone.ui.MainActivity" />
-        <capability-binding android:key="org.akanework.gramophone.actions.intent.SHUFFLE" />
+            android:targetClass="com.igeeta.igpod.ui.MainActivity" />
+        <capability-binding android:key="com.igeeta.igpod.actions.intent.SHUFFLE" />
     </shortcut>
 </shortcuts>

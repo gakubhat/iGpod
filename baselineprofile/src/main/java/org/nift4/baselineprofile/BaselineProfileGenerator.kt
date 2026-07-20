@@ -74,7 +74,7 @@ class BaselineProfileGenerator {
             null
         ) { _: String, _: Uri -> }
         val ae = InstrumentationRegistry.getInstrumentation().uiAutomation
-        ae.executeShellCommand("pm clear org.akanework.gramophone")
+        ae.executeShellCommand("pm clear com.igeeta.igpod")
         Thread.sleep(1000) // let device settle a bit
         // The application id for the running build variant is read from the instrumentation arguments.
         rule.collect(
@@ -89,7 +89,7 @@ class BaselineProfileGenerator {
 
             // Start default activity for your app
             pressHome()
-            ae.executeShellCommand("pm grant org.akanework.gramophone android.permission.READ_MEDIA_AUDIO")
+            ae.executeShellCommand("pm grant com.igeeta.igpod android.permission.READ_MEDIA_AUDIO")
             startActivityAndWait()
 
             // More interactions to optimize advanced journeys of your app.

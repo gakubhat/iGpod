@@ -4,7 +4,7 @@
     android:id="@+id/player_layout">
 
     <!-- Preview Player -->
-    <org.akanework.gramophone.ui.components.PreviewBottomSheet
+    <com.igeeta.igpod.ui.components.PreviewBottomSheet
         android:id="@+id/preview_player"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -14,7 +14,7 @@
         tools:visibility="visible" />
 
     <!-- Full Player -->
-    <org.akanework.gramophone.ui.components.FullBottomSheet
+    <com.igeeta.igpod.ui.components.FullBottomSheet
         android:id="@+id/full_player"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -30,7 +30,7 @@
         android:alpha="0"
         android:visibility="gone">
 
-        <org.akanework.gramophone.ui.components.LyricsView
+        <com.igeeta.igpod.ui.components.LyricsView
             android:id="@+id/lyric_frame"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

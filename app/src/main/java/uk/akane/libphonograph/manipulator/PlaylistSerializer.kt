@@ -31,10 +31,10 @@ import androidx.media3.common.MediaItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.parcelize.Parcelize
 import okio.Path.Companion.toOkioPath
-import org.akanework.gramophone.BuildConfig
-import org.akanework.gramophone.logic.getFile
-import org.akanework.gramophone.logic.utils.flows.IncrementalMap
-import org.akanework.gramophone.logic.utils.flows.forKey
+import com.igeeta.igpod.BuildConfig
+import com.igeeta.igpod.logic.getFile
+import com.igeeta.igpod.logic.utils.flows.IncrementalMap
+import com.igeeta.igpod.logic.utils.flows.forKey
 import org.nift4.mediastorecompat.MediaStoreCompat
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException

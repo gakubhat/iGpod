@@ -11,11 +11,11 @@
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/container"
-        android:name="org.akanework.gramophone.ui.fragments.ViewPagerFragment"
+        android:name="com.igeeta.igpod.ui.fragments.ViewPagerFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <org.akanework.gramophone.ui.components.PlayerBottomSheet
+    <com.igeeta.igpod.ui.components.PlayerBottomSheet
         android:id="@+id/player_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -25,7 +25,7 @@
         android:elevation="?attr/previewPlayerElevation"
         app:behavior_hideable="true"
         app:behavior_halfExpandedRatio="0.8"
-        app:layout_behavior="org.akanework.gramophone.logic.ui.MyBottomSheetBehavior"
+        app:layout_behavior="com.igeeta.igpod.logic.ui.MyBottomSheetBehavior"
         app:marginLeftSystemWindowInsets="false"
         app:marginRightSystemWindowInsets="false"
         app:paddingBottomSystemWindowInsets="false"

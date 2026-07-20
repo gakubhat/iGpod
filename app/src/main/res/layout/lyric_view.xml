@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <org.akanework.gramophone.logic.ui.MyRecyclerView
+    <com.igeeta.igpod.logic.ui.MyRecyclerView
         android:id="@+id/recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -13,6 +13,6 @@
         android:clipToPadding="false"
         android:scrollbars="none"
         app:hasFixedSize="true"
-        app:layoutManager="org.akanework.gramophone.logic.ui.CustomLinearLayoutManager"
+        app:layoutManager="com.igeeta.igpod.logic.ui.CustomLinearLayoutManager"
         tools:listitem="@layout/lyrics" />
 </merge>

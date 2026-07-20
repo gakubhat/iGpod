@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <org.akanework.gramophone.ui.components.NewLyricsView
+    <com.igeeta.igpod.ui.components.NewLyricsView
         android:id="@+id/lyric_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

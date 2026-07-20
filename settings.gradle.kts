@@ -21,7 +21,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Gramophone"
+rootProject.name = "iGpod"
 includeBuild(file("media3").toPath().toRealPath().toAbsolutePath().toString()) {
     dependencySubstitution {
         substitute(module("androidx.media3:media3-common")).using(project(":lib-common"))

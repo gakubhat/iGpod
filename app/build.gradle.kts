@@ -35,7 +35,7 @@ android {
         throw IllegalArgumentException("releaseType must not contain \"")
     }
 
-    namespace = "org.akanework.gramophone"
+    namespace = "com.igeeta.igpod"
     compileSdk = 37
 
     signingConfigs {
@@ -101,7 +101,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = appIdOverride ?: "org.akanework.gramophone"
+        applicationId = appIdOverride ?: "com.igeeta.igpod"
         // Reasons to not support KK include me.zhanghai.android.fastscroll, WindowInsets for
         // bottom sheet padding, ExoPlayer requiring multidex, vector drawables and poor SD support
         // That said, supporting Android 5.0 costs tolerable amounts of tech debt, and we plan to
@@ -278,7 +278,7 @@ kotlin {
 }
 
 base {
-    archivesName = "Gramophone-${android.defaultConfig.versionName}${android.defaultConfig.versionNameSuffix ?: ""}"
+    archivesName = "iGpod-${android.defaultConfig.versionName}${android.defaultConfig.versionNameSuffix ?: ""}"
 }
 
 baselineProfile {

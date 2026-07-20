@@ -33,7 +33,7 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <org.akanework.gramophone.ui.components.MarqueeTextView
+    <com.igeeta.igpod.ui.components.MarqueeTextView
         android:id="@+id/title_text_view"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -49,7 +49,7 @@
         app:textFontWeight="400"
         tools:ignore="SpeakableTextPresentCheck" />
 
-    <org.akanework.gramophone.ui.components.MarqueeTextView
+    <com.igeeta.igpod.ui.components.MarqueeTextView
         android:id="@+id/artist_text_view"
         android:layout_width="0dp"
         android:layout_height="wrap_content"

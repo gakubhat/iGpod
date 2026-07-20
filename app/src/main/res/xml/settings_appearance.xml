@@ -47,7 +47,7 @@
         android:layout="@layout/preference_category_md"
         android:title="@string/settings_preference_category_home">
 
-        <org.akanework.gramophone.ui.components.TabOrderPreference
+        <com.igeeta.igpod.ui.components.TabOrderPreference
             android:defaultValue=""
             android:key="tabs"
             android:layout="@layout/preference_basic"

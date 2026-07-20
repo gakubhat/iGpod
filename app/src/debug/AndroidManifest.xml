@@ -10,7 +10,7 @@
 		tools:targetApi="s"
 		tools:replace="android:icon">
 		<activity
-			android:name="org.akanework.gramophone.Reflections"
+			android:name="com.igeeta.igpod.Reflections"
 			android:label="Reflections"
 			android:launchMode="singleInstance"
 			android:exported="true">
