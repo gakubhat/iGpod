@@ -336,7 +336,43 @@ class SongAdapter(
                     true
                 }
 
+                R.id.rate -> {
+                    showRatingDialog(item)
+                    true
+                }
+
                 else -> false
+            }
+        }
+    }
+
+    private fun showRatingDialog(item: MediaItem) {
+        val filePath = item.getFile()?.absolutePath ?: return
+        val currentRating = 0 // Will be loaded from DB
+
+        // Create a simple star rating dialog
+        val ratingValues = arrayOf("0 - No rating", "1 - Poor", "2 - Fair", "3 - Good", "4 - Very Good", "5 - Excellent")
+        val checkedItem = currentRating
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = com.igeeta.igpod.sync.SyncDatabase.getInstance(context)
+            val track = db.getTrackByPath(filePath)
+            val savedRating = track?.localRating ?: 0
+
+            withContext(Dispatchers.Main) {
+                MaterialAlertDialogBuilder(context)
+                    .setTitle(R.string.rate_track)
+                    .setSingleChoiceItems(ratingValues, savedRating) { dialog, which ->
+                        CoroutineScope(Dispatchers.IO).launch {
+                            db.setLocalRating(filePath, which)
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, R.string.rating_saved, Toast.LENGTH_SHORT).show()
+                                dialog.dismiss()
+                            }
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
             }
         }
     }

@@ -153,7 +153,8 @@ internal object Reader {
         shouldLoadFolders: Boolean = true,
         shouldLoadFilesystem: Boolean = true,
         shouldLoadIdMap: Boolean = true,
-        shouldLoadPathMap: Boolean = true
+        shouldLoadPathMap: Boolean = true,
+        libraryRootPath: String? = null // iGeeta: scope to specific directory
     ): ReaderResult {
         if (!shouldLoadFilesystem && shouldUseEnhancedCoverReading != false) {
             throw IllegalArgumentException("Enhanced cover loading requires loading filesystem")
@@ -210,11 +211,27 @@ internal object Reader {
             MediaStore.getExternalVolumeNames(context).contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)
         } else true
         val sortOrder = MediaStore.Audio.Media.TITLE + " COLLATE UNICODE ASC"
+
+        // iGeeta: scope query to specific directory if libraryRootPath is set
+        val selection: String?
+        val selectionArgs: Array<String>?
+        if (libraryRootPath != null) {
+            selection = "${MediaStore.Audio.Media.DATA} LIKE ?"
+            selectionArgs = arrayOf("$libraryRootPath/%")
+        } else {
+            selection = null
+            selectionArgs = null
+        }
+
         val cursor = if (hasVolume) {
             // TODO: convert coroutine cancellation to cancellationSignal
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val queryArgs = Bundle()
                 queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER, sortOrder)
+                if (selection != null) {
+                    queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection)
+                    queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs)
+                }
                 // TODO: maybe we can use QUERY_ARG_INCLUDE_RECENTLY_UNMOUNTED_VOLUMES?
                 context.contentResolver.query(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -226,8 +243,8 @@ internal object Reader {
                 context.contentResolver.query(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                     projection,
-                    null,
-                    null,
+                    selection,
+                    selectionArgs,
                     sortOrder,
                     null
                 )
@@ -620,6 +637,7 @@ internal object Reader {
             artistList,
             genreList,
             dateList,
+            listOf(),
             idMap,
             pathMap,
             root,

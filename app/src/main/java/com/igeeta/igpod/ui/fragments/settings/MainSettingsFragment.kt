@@ -57,6 +57,10 @@ class MainSettingsFragment : BasePreferenceFragment() {
             "experimental" -> {
                 startActivity(ExperimentalSettingsActivity::class.java)
             }
+
+            "igeeta_sync" -> {
+                startActivity(SyncSettingsActivity::class.java)
+            }
         }
         return super.onPreferenceTreeClick(preference)
     }

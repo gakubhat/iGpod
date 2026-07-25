@@ -36,6 +36,7 @@ import com.igeeta.igpod.logic.getStringStrict
 import com.igeeta.igpod.logic.hasImprovedMediaStore
 import com.igeeta.igpod.ui.MainActivity
 import com.igeeta.igpod.ui.fragments.AdapterFragment
+import com.igeeta.igpod.ui.fragments.RadioFragment
 
 /**
  * This is the ViewPager2 adapter.
@@ -86,12 +87,18 @@ class ViewPager2Adapter(
     override fun getItemCount() = tabs.indexOf(null)
         .also { if (it == -1) throw IllegalStateException("indexOf null is -1 in tab list?") }
 
-    override fun createFragment(position: Int): Fragment =
-        AdapterFragment().apply {
-            arguments = Bundle().apply {
-                putInt("ID", tabs[position]!!.id)
+    override fun createFragment(position: Int): Fragment {
+        val tab = tabs[position]!!
+        return if (tab.id == R.id.radio) {
+            RadioFragment()
+        } else {
+            AdapterFragment().apply {
+                arguments = Bundle().apply {
+                    putInt("ID", tab.id)
+                }
             }
         }
+    }
 
     override fun getItemId(position: Int): Long {
         return tabs[position]!!.id.toLong()
@@ -111,10 +118,13 @@ class ViewPager2Adapter(
             Dates(R.id.dates, R.string.category_dates),
             Folders(R.id.folders, R.string.folders),
             FileSystem(R.id.detailed_folders, R.string.filesystem),
-            Playlist(R.id.playlists, R.string.category_playlists)
+            Playlist(R.id.playlists, R.string.category_playlists),
+            Raagas(R.id.raagas, R.string.category_raagas),
+            Radio(R.id.radio, R.string.category_radio)
         }
 
         fun mapSettingToTabList(setting: String): List<Tab?> {
+            val excludedTabs = setOf(Tab.Dates, Tab.Folders, Tab.FileSystem)
             val stList = if (!setting.isEmpty())
                 setting.split(",").flatMap {
                     if (it.isEmpty())
@@ -122,8 +132,9 @@ class ViewPager2Adapter(
                     else
                         try {
                             val t = Tab.valueOf(it)
-                            if (!hasImprovedMediaStore() && t == Tab.Genres)
-                                listOf() else listOf(t)
+                            if (excludedTabs.contains(t)) listOf()
+                            else if (!hasImprovedMediaStore() && t == Tab.Genres) listOf()
+                            else listOf(t)
                         } catch (_: IllegalArgumentException) {
                             listOf() // this tab was removed
                         }
@@ -132,7 +143,7 @@ class ViewPager2Adapter(
             Tab.entries.forEach {
                 if (stList.indexOf(it) != stList.lastIndexOf(it))
                     stList.removeAll { i -> i == it }
-                if (!stList.contains(it) && (it != Tab.Genres || hasImprovedMediaStore()))
+                if (!stList.contains(it) && !excludedTabs.contains(it) && (it != Tab.Genres || hasImprovedMediaStore()))
                     stList.add(it)
             }
             if (!stList.contains(null))

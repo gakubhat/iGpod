@@ -32,11 +32,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.igeeta.igpod.R
 import com.igeeta.igpod.logic.closeKeyboard
 import com.igeeta.igpod.logic.enableEdgeToEdgePaddingListener
+import com.igeeta.igpod.logic.getFile
 import com.igeeta.igpod.logic.showKeyboard
 import com.igeeta.igpod.logic.ui.MyRecyclerView
+import com.igeeta.igpod.sync.SyncDatabase
 import com.igeeta.igpod.ui.adapters.SongAdapter
 import com.igeeta.igpod.ui.adapters.Sorter
 
@@ -51,6 +57,7 @@ class SearchFragment : BaseFragment(true) {
     // TODO this class leaks InsetSourceControl
     private lateinit var editText: EditText
     private lateinit var qTitle: Flow<String>
+    private var lastSyncResults: List<String> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -70,8 +77,8 @@ class SearchFragment : BaseFragment(true) {
                 this, qTitle, mainActivity.reader.songListFlow.combine(searchTextFlow.map {
                     it.trim()
                 }) { list, text ->
-                    list.filter {
-                        // TODO sort results by match quality? (using raw=natural order)
+                    // Standard search: title, album, artist
+                    val matchingByStandard = list.filter {
                         val isMatchingTitle =
                             it.mediaMetadata.title?.contains(text, true) == true
                         val isMatchingAlbum =
@@ -80,6 +87,19 @@ class SearchFragment : BaseFragment(true) {
                             it.mediaMetadata.artist?.contains(text, true) == true
                         isMatchingTitle || isMatchingAlbum || isMatchingArtist
                     }
+
+                    if (text.isEmpty()) return@combine matchingByStandard
+
+                    // Enhanced search: raaga, instruments, tags from sync database
+                    // Use pre-fetched results to avoid I/O on main thread
+                    val syncMatches = lastSyncResults.mapNotNull { filePath ->
+                        list.find { mediaItem ->
+                            mediaItem.getFile()?.absolutePath?.endsWith(filePath) == true
+                        }
+                    }
+
+                    // Merge results, avoiding duplicates
+                    (matchingByStandard + syncMatches).distinctBy { it.mediaId }
                 },
                 isSubFragment = R.id.search, allowDiffUtils = true,
                 rawOrderExposed = Sorter.Type.ByTitleAscending
@@ -96,7 +116,24 @@ class SearchFragment : BaseFragment(true) {
 
         editText.setText(searchTextFlow.value)
         editText.addTextChangedListener { rawText ->
-            searchTextFlow.value = rawText?.toString() ?: ""
+            val query = rawText?.toString() ?: ""
+            searchTextFlow.value = query
+            // Pre-fetch sync database results on background thread
+            if (query.isNotBlank()) {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val results = withContext(Dispatchers.IO) {
+                        try {
+                            val db = SyncDatabase.getInstance(requireContext())
+                            db.searchTracks(query).map { it.filePath }
+                        } catch (_: Exception) {
+                            emptyList()
+                        }
+                    }
+                    lastSyncResults = results
+                }
+            } else {
+                lastSyncResults = emptyList()
+            }
         }
 
         returnButton.setOnClickListener {

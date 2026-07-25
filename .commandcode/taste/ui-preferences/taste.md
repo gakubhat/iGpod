@@ -1,0 +1,13 @@
+# UI preferences
+- Prefers minimal/simplified tab layout in music app: only Songs, Albums, Artists, Genres, and Playlists tabs. Wants Dates, Folders, and FileSystem tabs removed — these are not needed. Confidence: 0.85
+- Prefers SubGenre-based grouping over Genre-based grouping in the Genres tab. The tab should list tracks by subgenre only. Confidence: 0.85
+- Expects new features to include search and filter capabilities — not just browse-only views. E.g., raagas should be searchable, tracks should be filterable by raaga. Confidence: 0.75
+- Wants long-running operations (e.g., sync) to show in-app progress indicators, not rely solely on system notifications. User should see status without leaving the app. Confidence: 0.8
+- Wants orphaned/orphan records (e.g., tracks no longer in any playlist) to be cleaned up automatically — does not want stale data accumulating in the DB. Confidence: 0.8
+- Wants a "clean entire collection" option — a way to purge all synced data and start fresh from the server. Confidence: 0.75
+- Wants UI to adapt button/action states during long-running operations: hide unrelated actions (e.g., Select All, Sync Now) and show relevant ones (e.g., Cancel) while the operation is in progress. Should not present a static UI that ignores current state. Confidence: 0.8
+- Expects UI elements (buttons, controls) to look visually polished and well-styled — not just functional. Will flag visual quality issues with terse feedback like "not looking good" and expects the agent to investigate and fix the styling independently. Confidence: 0.7
+- Prefers auto-navigation to contextually relevant pages based on app state — e.g., when there are no songs, land directly on the sync/setup page instead of an empty main screen. Skips unnecessary navigation steps. Confidence: 0.8
+- Prefers consolidating multi-step configuration flows into a single scrollable page rather than spreading them across multiple screens. Wants setup screens to fit on one page with inline editing (e.g., host/port input directly on sync page, hidden behind an Edit button once configured). Confidence: 0.8
+- Prefers dropdown selectors over tabs for in-page option switching (e.g., radio channel/mode selection). Tabs feel heavy for secondary option groups; dropdowns are preferred for compactness. Confidence: 0.75
+- Prefers dialog-based selection (e.g., AlertDialog with multi-choice) for search/filter/multi-select flows rather than inline elements (e.g., ChipGroup) that crowd the screen and push other controls off-screen. Wants selection UI in separate overlay/modal, not inline. Confidence: 0.75

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__android-mcp__ListDevices",
+      "Shell(./gradlew:*)",
+      "Shell(adb:*)",
+      "Shell(grep:*)",
+      "Shell(head:*)",
+      "mcp__android-mcp__Snapshot",
+      "mcp__android-mcp__Wait",
+      "mcp__android-mcp__ClickBySelector",
+      "mcp__context-engine__context_search",
+      "mcp__context-engine__record_decision",
+      "mcp__context-engine__record_code_area",
+      "mcp__context-engine__session_recall",
+      "mcp__android-mcp__Swipe",
+      "mcp__android-mcp__Click",
+      "Shell(curl -s http://localhost:8000/api/playlists 2 >& 1)",
+      "Shell(curl -s http://localhost:8000/api/playlists/1 2 >& 1)",
+      "Shell(ifconfig:*)",
+      "mcp__android-mcp__Press",
+      "mcp__android-mcp__Type"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

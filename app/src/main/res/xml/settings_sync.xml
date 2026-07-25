@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:layout="@layout/preference_category_md"
+        android:title="@string/igeeta_server">
+
+        <EditTextPreference
+            android:defaultValue="Gs-Mac-mini.local"
+            android:key="igeeta_host"
+            android:layout="@layout/preference_basic"
+            android:title="@string/igeeta_host"
+            android:dialogTitle="@string/igeeta_host"
+            android:summary="@string/igeeta_host_summary"
+            app:iconSpaceReserved="false"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            android:defaultValue="8000"
+            android:key="igeeta_port"
+            android:layout="@layout/preference_basic"
+            android:title="@string/igeeta_port"
+            android:dialogTitle="@string/igeeta_port"
+            android:summary="@string/igeeta_port_summary"
+            app:iconSpaceReserved="false"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            android:key="igeeta_test_connection"
+            android:layout="@layout/preference_basic"
+            android:title="@string/igeeta_test_connection"
+            android:summary="@string/igeeta_test_connection_summary"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:layout="@layout/preference_category_md"
+        android:title="@string/igeeta_sync_status">
+
+        <Preference
+            android:key="igeeta_last_sync"
+            android:layout="@layout/preference_basic"
+            android:title="@string/igeeta_last_sync"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:key="igeeta_synced_count"
+            android:layout="@layout/preference_basic"
+            android:title="@string/igeeta_synced_count"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:key="igeeta_open_sync"
+            android:layout="@layout/preference_basic"
+            android:title="@string/igeeta_open_sync"
+            android:summary="@string/igeeta_open_sync_summary"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

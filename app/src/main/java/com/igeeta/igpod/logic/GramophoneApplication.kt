@@ -96,6 +96,8 @@ class GramophoneApplication : Application(), SingletonImageLoader.Factory,
     val shouldUseEnhancedCoverReadingFlow = if (hasScopedStorageWithMediaTypes()) null else
         MutableSharedFlow<Boolean?>(replay = 1)
     val recentlyAddedFilterSecondFlow = MutableStateFlow(1_209_600L)
+    // iGeeta: scope library to specific directory (null = show all)
+    val libraryRootPathFlow = MutableStateFlow<String?>(null)
     val extraDisallowedFolders = setOf(
         Environment.DIRECTORY_RINGTONES,
         Environment.DIRECTORY_NOTIFICATIONS,
@@ -134,7 +136,6 @@ class GramophoneApplication : Application(), SingletonImageLoader.Factory,
                         else it
                     }
                     .penaltyLog()
-                    .penaltyDialog()
                     .build()
             )
             StrictMode.setVmPolicy(
@@ -235,6 +236,20 @@ class GramophoneApplication : Application(), SingletonImageLoader.Factory,
             })
         }
         uacManager = UacManager(this)
+
+        // iGeeta: check if we should use database mode
+        val syncDb = com.igeeta.igpod.sync.SyncDatabase.getInstance(this)
+        val dbTrackCount = kotlinx.coroutines.runBlocking { syncDb.getTrackCount() }
+        val useDatabaseMode = dbTrackCount > 0
+        val dbRootPath = if (useDatabaseMode) {
+            val musicDir = android.os.Environment.getExternalStoragePublicDirectory(
+                android.os.Environment.DIRECTORY_MUSIC
+            )
+            java.io.File(musicDir, "iGeeta").absolutePath
+        } else null
+
+        android.util.Log.i(TAG, "Database mode: $useDatabaseMode, track count: $dbTrackCount")
+
         reader = FlowReader(
             this,
             if (BuildConfig.DISABLE_MEDIA_STORE_FILTER) MutableStateFlow(0) else
@@ -243,7 +258,11 @@ class GramophoneApplication : Application(), SingletonImageLoader.Factory,
             whiteListSetFlow,
             if (hasScopedStorageWithMediaTypes()) MutableStateFlow(null) else
                 shouldUseEnhancedCoverReadingFlow!!,
-            recentlyAddedFilterSecondFlow
+            recentlyAddedFilterSecondFlow,
+            libraryRootPathFlow,
+            useDatabase = useDatabaseMode,
+            syncDb = if (useDatabaseMode) syncDb else null,
+            dbRootPath = dbRootPath
         )
         // Set application theme when launching.
         when (prefs.getString("theme_mode", "0")) {
@@ -316,6 +335,18 @@ class GramophoneApplication : Application(), SingletonImageLoader.Factory,
             }
             if ((key == null || key == "album_covers") && !hasScopedStorageWithMediaTypes()) {
                 shouldUseEnhancedCoverReadingFlow!!.emit(prefs.getBoolean("album_covers", true))
+            }
+            // iGeeta: scope library to /Music/iGeeta/ when server is configured
+            if (key == null || key == "igeeta_host") {
+                val host = prefs.getString("igeeta_host", "") ?: ""
+                if (host.isNotBlank()) {
+                    val musicDir = android.os.Environment.getExternalStoragePublicDirectory(
+                        android.os.Environment.DIRECTORY_MUSIC
+                    )
+                    libraryRootPathFlow.emit(java.io.File(musicDir, "iGeeta").absolutePath)
+                } else {
+                    libraryRootPathFlow.emit(null)
+                }
             }
         }
     }

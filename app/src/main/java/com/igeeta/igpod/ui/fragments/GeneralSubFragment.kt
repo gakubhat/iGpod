@@ -101,6 +101,13 @@ class GeneralSubFragment : BaseFragment(true) {
                 itemList = item.map { it?.songList }
             }
 
+            R.id.raagas -> {
+                // Raagas
+                val item = mainActivity.reader.raagasListFlow.map { it.find { it.id == id } }
+                title = item.map { it?.title ?: "Unknown Raaga" }
+                itemList = item.map { it?.songList }
+            }
+
             R.id.date -> {
                 // Dates
                 val item = mainActivity.reader.dateListFlow.map { it.find { it.id == id } }

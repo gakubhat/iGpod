@@ -30,6 +30,10 @@
     <string name="category_genres">Genres</string>
     <!-- Tab on home screen showing a list of playlists -->
     <string name="category_playlists">Playlists</string>
+    <!-- Tab on home screen showing a list of raagas -->
+    <string name="category_raagas">Raagas</string>
+    <!-- Tab on home screen for radio -->
+    <string name="category_radio">Radio</string>
     <!-- Used in place of the artist name if the artist can't be found unexpectedly -->
     <string name="unknown_artist">Unknown artist</string>
     <!-- Tab on home screen showing a list of years (2002, 2003, etc.) -->
@@ -1288,4 +1292,35 @@ supporting local search. This string is displayed in the search bar when using G
     <!-- Pin this queue so it does not get automatically removed after some period of time -->
     <string name="mq_pin_queue">Pin queue</string>
     <string name="shuffled">%s (shuffled)</string>
+
+    <!-- iGeeta Sync -->
+    <string name="igeeta_sync">iGeeta Sync</string>
+    <string name="igeeta_server">Server</string>
+    <string name="igeeta_host">Hostname</string>
+    <string name="igeeta_host_summary">IP address or hostname of iGeeta server</string>
+    <string name="igeeta_port">Port</string>
+    <string name="igeeta_port_summary">Server port (default: 8000)</string>
+    <string name="igeeta_test_connection">Test Connection</string>
+    <string name="igeeta_test_connection_summary">Verify server is reachable</string>
+    <string name="igeeta_test_connection_success">Connected successfully</string>
+    <string name="igeeta_test_connection_failed">Connection failed</string>
+    <string name="igeeta_sync_status">Sync Status</string>
+    <string name="igeeta_last_sync">Last Sync</string>
+    <string name="igeeta_last_sync_never">Never</string>
+    <string name="igeeta_synced_count">Synced Playlists</string>
+    <string name="igeeta_open_sync">Sync Now</string>
+    <string name="igeeta_open_sync_summary">Open sync page to select and sync playlists</string>
+    <string name="igeeta_sync_title">iGeeta Sync</string>
+    <string name="igeeta_available_playlists">Available Playlists</string>
+    <string name="igeeta_sync_button">Sync Now</string>
+    <string name="igeeta_select_all">Select All</string>
+    <string name="igeeta_sync_progress">Sync Progress</string>
+    <string name="igeeta_sync_complete">Sync Complete</string>
+    <string name="igeeta_sync_error">Sync Error</string>
+    <string name="igeeta_tracks_synced">%d/%d tracks synced</string>
+    <string name="igeeta_rating_pushed">Pushed %d rating changes</string>
+    <string name="igeeta_no_server">Configure server in Settings first</string>
+    <string name="rate">Rate</string>
+    <string name="rate_track">Rate Track</string>
+    <string name="rating_saved">Rating saved</string>
 </resources>

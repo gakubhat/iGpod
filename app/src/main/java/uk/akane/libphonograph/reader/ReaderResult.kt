@@ -25,6 +25,7 @@ import uk.akane.libphonograph.items.EmptyFileNode
 import uk.akane.libphonograph.items.FileNode
 import uk.akane.libphonograph.items.Genre
 import uk.akane.libphonograph.items.Playlist
+import uk.akane.libphonograph.items.RaagasItem
 
 data class ReaderResult(
     val songList: List<MediaItem>,
@@ -33,6 +34,7 @@ data class ReaderResult(
     val artistList: List<Artist>?,
     val genreList: List<Genre>?,
     val dateList: List<Date>?,
+    val raagasList: List<RaagasItem>?,
     val idMap: Map<Long, MediaItem>?,
     val pathMap: Map<String, MediaItem>?,
     val folderStructure: FileNode?,
@@ -42,7 +44,7 @@ data class ReaderResult(
 ) {
     companion object {
         fun emptyReaderResult() = ReaderResult(
-            listOf(), listOf(), listOf(), listOf(), listOf(), listOf(),
+            listOf(), listOf(), listOf(), listOf(), listOf(), listOf(), listOf(),
             mapOf(), mapOf(),
             EmptyFileNode, EmptyFileNode,
             setOf(), setOf()

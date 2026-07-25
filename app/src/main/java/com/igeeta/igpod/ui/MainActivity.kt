@@ -116,6 +116,7 @@ class MainActivity : BaseActivity() {
 
     // Import our viewModels.
     val controllerViewModel: MediaControllerViewModel by viewModels()
+    val radioManager by lazy { com.igeeta.igpod.logic.RadioManager(this) }
     val startingActivity =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
 
@@ -208,6 +209,15 @@ class MainActivity : BaseActivity() {
                 }
             }
         }, false)
+
+        // Check if database is empty - redirect to sync page
+        val syncDb = com.igeeta.igpod.sync.SyncDatabase.getInstance(this)
+        val dbTrackCount = kotlinx.coroutines.runBlocking { syncDb.getTrackCount() }
+        if (dbTrackCount == 0) {
+            startActivity(Intent(this, SyncActivity::class.java))
+            finish()
+            return
+        }
 
         // Set content Views.
         setContentView(R.layout.activity_main)

@@ -7,6 +7,7 @@ import com.igeeta.igpod.ui.adapters.DateAdapter
 import com.igeeta.igpod.ui.adapters.DetailedFolderAdapter
 import com.igeeta.igpod.ui.adapters.GenreAdapter
 import com.igeeta.igpod.ui.adapters.PlaylistAdapter
+import com.igeeta.igpod.ui.adapters.RaagasAdapter
 import com.igeeta.igpod.ui.adapters.SongAdapter
 import com.igeeta.igpod.ui.fragments.AdapterFragment
 
@@ -26,6 +27,10 @@ fun getAdapterType(adapter: AdapterFragment.BaseInterface<*>) =
 
         adapter is GenreAdapter -> {
             3
+        }
+
+        adapter is RaagasAdapter -> {
+            18
         }
 
         adapter is PlaylistAdapter -> {

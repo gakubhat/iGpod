@@ -43,8 +43,10 @@ import com.igeeta.igpod.ui.adapters.DateAdapter
 import com.igeeta.igpod.ui.adapters.DetailedFolderAdapter
 import com.igeeta.igpod.ui.adapters.GenreAdapter
 import com.igeeta.igpod.ui.adapters.PlaylistAdapter
+import com.igeeta.igpod.ui.adapters.RaagasAdapter
 import com.igeeta.igpod.ui.adapters.SongAdapter
 import com.igeeta.igpod.ui.adapters.Sorter
+import com.igeeta.igpod.ui.fragments.RadioFragment
 
 /**
  * AdapterFragment:
@@ -125,6 +127,7 @@ class AdapterFragment : BaseFragment(null) {
             R.id.folders -> DetailedFolderAdapter(this, false, savedInstanceState)
             R.id.detailed_folders -> DetailedFolderAdapter(this, true, savedInstanceState)
             R.id.playlists -> PlaylistAdapter(this)
+            R.id.raagas -> RaagasAdapter(this)
             -1, null -> throw IllegalArgumentException("unset ID value")
             else -> throw IllegalArgumentException("invalid ID value")
         }.apply {
@@ -143,6 +146,7 @@ class AdapterFragment : BaseFragment(null) {
             R.id.folders -> R.string.folders
             R.id.detailed_folders -> R.string.folders
             R.id.playlists -> R.string.category_playlists
+            R.id.raagas -> R.string.category_raagas
             -1, null -> throw IllegalArgumentException("unset ID value")
             else -> throw IllegalArgumentException("invalid ID value")
         }

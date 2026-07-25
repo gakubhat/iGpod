@@ -70,6 +70,13 @@
         android:title="@string/settings_experimental_settings" />
 
     <Preference
+        android:icon="@drawable/ic_sync"
+        android:key="igeeta_sync"
+        android:layout="@layout/preference_basic"
+        android:summary="@string/igeeta_sync"
+        android:title="@string/igeeta_sync" />
+
+    <Preference
         android:icon="@drawable/ic_info"
         android:key="about"
         android:layout="@layout/preference_basic"

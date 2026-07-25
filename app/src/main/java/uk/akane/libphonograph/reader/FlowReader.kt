@@ -63,7 +63,12 @@ import uk.akane.libphonograph.items.Artist
 import uk.akane.libphonograph.items.Date
 import uk.akane.libphonograph.items.FileNode
 import uk.akane.libphonograph.items.Genre
+import uk.akane.libphonograph.items.Playlist
+import uk.akane.libphonograph.items.RaagasItem
+import uk.akane.libphonograph.items.RawPlaylist
 import uk.akane.libphonograph.versioningCallbackFlow
+import com.igeeta.igpod.sync.DbReader
+import com.igeeta.igpod.sync.SyncDatabase
 
 /**
  * SimpleReader reimplementation using flows with focus on efficiency.
@@ -76,6 +81,10 @@ class FlowReader(
     whiteListSetFlow: SharedFlow<Set<String>>,
     shouldUseEnhancedCoverReadingFlow: SharedFlow<Boolean?>, // null means load if permission is granted
     recentlyAddedFilterSecondFlow: SharedFlow<Long?>, // null means don't generate recently added
+    libraryRootPathFlow: SharedFlow<String?> = kotlinx.coroutines.flow.MutableStateFlow(null), // iGeeta: scope to directory
+    private val useDatabase: Boolean = false, // iGeeta: use SQLite DB instead of MediaStore
+    private val syncDb: SyncDatabase? = null, // iGeeta: database instance for DB mode
+    private val dbRootPath: String? = null, // iGeeta: root path for DB mode
 ) {
     // IMPORTANT: Do not use distinctUntilChanged() or StateFlow here because equals() on thousands
     // of MediaItems is very, very expensive!
@@ -183,11 +192,13 @@ class FlowReader(
         minSongLengthSeconds: Long,
         blackListSet: Set<String>,
         whiteListSet: Set<String>,
-        shouldUseEnhancedCoverReading: Boolean?
+        shouldUseEnhancedCoverReading: Boolean?,
+        libraryRootPath: String? = null
     ) =
-        // TODO repeatUntilDoneWhenUnpaused makes no sense with non-cancelable
-        //  function, make it cancelable
-        if (context.hasAudioPermission() && (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+        // iGeeta: use database mode if configured
+        if (useDatabase && syncDb != null && dbRootPath != null) {
+            DbReader.readFromDatabase(syncDb, dbRootPath)
+        } else if (context.hasAudioPermission() && (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
                     MediaStore.getExternalVolumeNames(context)
                         .contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)))
             Reader.readFromMediaStore(
@@ -195,64 +206,126 @@ class FlowReader(
                 minSongLengthSeconds,
                 blackListSet,
                 whiteListSet,
-                shouldUseEnhancedCoverReading
+                shouldUseEnhancedCoverReading,
+                libraryRootPath = libraryRootPath
             )
         else ReaderResult.emptyReaderResult()
 
     // These expensive Reader calls are only done if we have someone (UI) observing the result AND
     // something changed. The PauseableFlows mechanism allows us to skip any unnecessary work.
-    private val rawPlaylistFlow = rawPlaylistVersionFlow
-        .onEach { requireReplayCacheInvalidationManager().invalidate() }
-        .conflateAndBlockWhenPaused()
-        .flatMapLatest {
-            manualRefreshTrigger.mapLatest { _ ->
-                if (context.hasAudioPermission() && (Build.VERSION.SDK_INT < Build.VERSION_CODES.R
-                            || MediaStore.getExternalVolumeNames(context)
-                                .contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)))
-                    Reader.fetchPlaylists(context).first
-                else emptyList()
-            }
-        }
-        .provideReplayCacheInvalidationManager(copyDownstream = Invalidation.Optional)
-        .sharePauseableIn(scope, WhileSubscribed(20000), WhileSubscribed(2000), replay = 1)
-    private val readerFlow: Flow<ReaderResult> =
-        shouldUseEnhancedCoverReadingFlow.distinctUntilChanged()
-            .flatMapLatest { shouldUseEnhancedCoverReading ->
-                minSongLengthSecondsFlow.distinctUntilChanged()
-                    .flatMapLatest { minSongLengthSeconds ->
-                        blackListSetFlow.distinctUntilChanged()
-                            .flatMapLatest { blackListSet ->
-                                whiteListSetFlow.distinctUntilChanged()
-                                    .flatMapLatest { whiteListSet ->
-                                        mediaVersionFlow
-                                            .onEach { requireReplayCacheInvalidationManager().invalidate() }
-                                            .conflateAndBlockWhenPaused()
-                                            .flatMapLatest {
-                                                // manual refresh may for whatever reason
-                                                // run in background, but all others
-                                                // shouldn't trigger background runs
-                                                manualRefreshTrigger.mapLatest { _ ->
-                                                    repeatUntilDoneWhenUnpaused {
-                                                        maybeDoRead(
-                                                            context,
-                                                            minSongLengthSeconds,
-                                                            blackListSet,
-                                                            whiteListSet,
-                                                            shouldUseEnhancedCoverReading
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                    }
-                            }
+    private val rawPlaylistFlow: Flow<List<Any>> = if (useDatabase) {
+        // Database mode: read playlists from SQLite
+        manualRefreshTrigger
+            .onEach { requireReplayCacheInvalidationManager().invalidate() }
+            .conflateAndBlockWhenPaused()
+            .flatMapLatest { _ ->
+                kotlinx.coroutines.flow.flow {
+                    val playlists = syncDb?.getAllPlaylists() ?: emptyList()
+                    val pathMap = pathMapFlow.first()
+                    val result = playlists.mapNotNull { syncedPlaylist ->
+                        val tracks = syncDb?.getTracksByPlaylist(syncedPlaylist.serverId) ?: return@mapNotNull null
+                        val mediaItems = tracks.mapNotNull { track ->
+                            pathMap[track.filePath]
+                        }
+                        if (mediaItems.isEmpty()) return@mapNotNull null
+                        uk.akane.libphonograph.items.Playlist(
+                            id = syncedPlaylist.serverId.toLong(),
+                            title = syncedPlaylist.name,
+                            path = null,
+                            cover = null,
+                            dateAdded = null,
+                            dateModified = null,
+                            songList = mediaItems
+                        )
                     }
-            }
-            .onEach {
-                finishRefreshTrigger.emit(Unit)
-                awaitingRefresh = true
+                    emit(result)
+                }
             }
             .provideReplayCacheInvalidationManager(copyDownstream = Invalidation.Optional)
             .sharePauseableIn(scope, WhileSubscribed(20000), WhileSubscribed(2000), replay = 1)
+    } else {
+        // MediaStore mode: original behavior
+        rawPlaylistVersionFlow
+            .onEach { requireReplayCacheInvalidationManager().invalidate() }
+            .conflateAndBlockWhenPaused()
+            .flatMapLatest {
+                manualRefreshTrigger.mapLatest { _ ->
+                    if (context.hasAudioPermission() && (Build.VERSION.SDK_INT < Build.VERSION_CODES.R
+                                || MediaStore.getExternalVolumeNames(context)
+                                    .contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)))
+                        Reader.fetchPlaylists(context).first
+                    else emptyList()
+                }
+            }
+            .provideReplayCacheInvalidationManager(copyDownstream = Invalidation.Optional)
+            .sharePauseableIn(scope, WhileSubscribed(20000), WhileSubscribed(2000), replay = 1)
+    }
+    private val readerFlow: Flow<ReaderResult> =
+        if (useDatabase) {
+            // Database mode: use manualRefreshTrigger directly, no MediaStore observation
+            manualRefreshTrigger
+                .onEach { requireReplayCacheInvalidationManager().invalidate() }
+                .conflateAndBlockWhenPaused()
+                .mapLatest { _ ->
+                    maybeDoRead(
+                        context,
+                        0,
+                        emptySet(),
+                        emptySet(),
+                        false,
+                        null
+                    )
+                }
+                .onEach {
+                    finishRefreshTrigger.emit(Unit)
+                    awaitingRefresh = true
+                }
+                .provideReplayCacheInvalidationManager(copyDownstream = Invalidation.Optional)
+                .sharePauseableIn(scope, WhileSubscribed(20000), WhileSubscribed(2000), replay = 1)
+        } else {
+            // MediaStore mode: original behavior
+            shouldUseEnhancedCoverReadingFlow.distinctUntilChanged()
+                .flatMapLatest { shouldUseEnhancedCoverReading ->
+                    minSongLengthSecondsFlow.distinctUntilChanged()
+                        .flatMapLatest { minSongLengthSeconds ->
+                            blackListSetFlow.distinctUntilChanged()
+                                .flatMapLatest { blackListSet ->
+                                    whiteListSetFlow.distinctUntilChanged()
+                                        .flatMapLatest { whiteListSet ->
+                                            libraryRootPathFlow.distinctUntilChanged()
+                                                .flatMapLatest { libraryRootPath ->
+                                                    mediaVersionFlow
+                                                        .onEach { requireReplayCacheInvalidationManager().invalidate() }
+                                                        .conflateAndBlockWhenPaused()
+                                                        .flatMapLatest {
+                                                            // manual refresh may for whatever reason
+                                                            // run in background, but all others
+                                                            // shouldn't trigger background runs
+                                                            manualRefreshTrigger.mapLatest { _ ->
+                                                                repeatUntilDoneWhenUnpaused {
+                                                                    maybeDoRead(
+                                                                        context,
+                                                                        minSongLengthSeconds,
+                                                                        blackListSet,
+                                                                        whiteListSet,
+                                                                        shouldUseEnhancedCoverReading,
+                                                                        libraryRootPath
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                }
+                                        }
+                                }
+                        }
+                }
+                .onEach {
+                    finishRefreshTrigger.emit(Unit)
+                    awaitingRefresh = true
+                }
+                .provideReplayCacheInvalidationManager(copyDownstream = Invalidation.Optional)
+                .sharePauseableIn(scope, WhileSubscribed(20000), WhileSubscribed(2000), replay = 1)
+        }
     val idMapFlow: Flow<Map<Long, MediaItem>> = readerFlow.map { it.idMap!! }
     val pathMapFlow = readerFlow.map { it.pathMap!! }
     val songListFlow: Flow<List<MediaItem>> = readerFlow.map { it.songList }
@@ -269,15 +342,25 @@ class FlowReader(
         }
         .provideReplayCacheInvalidationManager(copyDownstream = Invalidation.Optional)
         .sharePauseableIn(scope, WhileSubscribed(20000), WhileSubscribed(2000), replay = 1)
-    private val mappedPlaylistsFlow =
-        pathMapFlow.combine(rawPlaylistFlow) { pathMap, rawPlaylists ->
-            rawPlaylists.mapNotNull { it.toPlaylist(pathMap) }
+    private val mappedPlaylistsFlow: Flow<List<Playlist>> = if (useDatabase) {
+        // Database mode: rawPlaylistFlow already returns Playlist objects
+        rawPlaylistFlow.map { items ->
+            items.filterIsInstance<Playlist>()
         }
+    } else {
+        // MediaStore mode: need to convert RawPlaylist to Playlist
+        pathMapFlow.combine(rawPlaylistFlow) { pathMap, rawPlaylists ->
+            rawPlaylists.mapNotNull {
+                (it as? RawPlaylist)?.toPlaylist(pathMap)
+            }
+        }
+    }
     val albumListFlow: Flow<List<Album>> = readerFlow.map { it.albumList!! }
     val albumArtistListFlow: Flow<List<Artist>> = readerFlow.map { it.albumArtistList!! }
     val artistListFlow: Flow<List<Artist>> = readerFlow.map { it.artistList!! }
     val genreListFlow: Flow<List<Genre>> = readerFlow.map { it.genreList!! }
     val dateListFlow: Flow<List<Date>> = readerFlow.map { it.dateList!! }
+    val raagasListFlow: Flow<List<RaagasItem>> = readerFlow.map { it.raagasList!! }
     val playlistListFlow = combine(mappedPlaylistsFlow, recentlyAddedFlow)
     { mappedPlaylists, recentlyAdded ->
         if (recentlyAdded != null) mappedPlaylists + recentlyAdded else mappedPlaylists

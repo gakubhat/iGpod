@@ -188,7 +188,9 @@ class ViewPagerFragment : BaseFragment(true) {
                 }
 
                 R.id.settings -> {
-                    activity.startActivity(Intent(activity, MainSettingsActivity::class.java))
+                    val intent = Intent(activity, MainSettingsActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    activity.startActivity(intent)
                 }
 
                 R.id.shuffle -> {
