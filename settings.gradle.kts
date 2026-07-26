@@ -22,15 +22,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "iGpod"
-includeBuild(file("media3").toPath().toRealPath().toAbsolutePath().toString()) {
-    dependencySubstitution {
-        substitute(module("androidx.media3:media3-common")).using(project(":lib-common"))
-        substitute(module("androidx.media3:media3-common-ktx")).using(project(":lib-common-ktx"))
-        substitute(module("androidx.media3:media3-exoplayer")).using(project(":lib-exoplayer"))
-        substitute(module("androidx.media3:media3-exoplayer-midi")).using(project(":lib-decoder-midi"))
-        substitute(module("androidx.media3:media3-session")).using(project(":lib-session"))
-    }
-}
 
 include(":misc:audiofxstub")
 include(":misc:audiofxstub2")

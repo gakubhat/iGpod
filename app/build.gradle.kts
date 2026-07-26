@@ -104,11 +104,10 @@ android {
         applicationId = appIdOverride ?: "com.igeeta.igpod"
         // Reasons to not support KK include me.zhanghai.android.fastscroll, WindowInsets for
         // bottom sheet padding, ExoPlayer requiring multidex, vector drawables and poor SD support
-        // That said, supporting Android 5.0 costs tolerable amounts of tech debt, and we plan to
-        // keep support for it for a while.
-        minSdk = 21
+        // Stock AndroidX Media 1.10.1 requires minSdk 23, so we follow that floor.
+        minSdk = 23
         targetSdk = 35
-        versionCode = 21 // Skip 22, it was used for gplay-only hotfix.
+        versionCode = 23 // 22 was a gplay-only hotfix; 23 is next after fork/minSdk23 rework
         versionName = "1.1.0"
         if (releaseType != "Release" || versionNameSuffixOverride != null) {
             // by default the git commit hash is appended for non-release builds, however overrides

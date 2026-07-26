@@ -88,7 +88,6 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
-import androidx.media3.session.addToCommandQueueThenFlush
 import androidx.preference.PreferenceManager
 import coil3.BitmapImage
 import coil3.imageLoader
@@ -250,7 +249,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         qb = QueueBoard(this)
         setListener(this)
         setForegroundServiceTimeoutMs(120000)
-        setShowNotificationForEmptyPlayer(SHOW_NOTIFICATION_FOR_EMPTY_PLAYER_AFTER_STOP_OR_ERROR)
         nm.createNotificationChannel(
             NotificationChannelCompat.Builder(
                 NOTIFY_CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_HIGH
@@ -438,7 +436,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                     )
                 )
-                .setSystemUiPlaybackResumptionOptIn(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                 .build()
         addSession(mediaSession!!)
         controller = MediaBrowser.Builder(this, mediaSession!!.token).buildAsync().get()
@@ -664,7 +661,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         scope.cancel()
         endedWorkaroundPlayer!!.stop()
         handler.removeCallbacks(timer)
-        mediaSession!!.setOptOutOfMediaButtonPlaybackResumption(controller!!.currentTimeline.isEmpty)
         controller!!.release()
         controller = null
         mediaSession!!.release()
@@ -802,9 +798,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                 },
                 mainExecutor
             )
-            // Ensure no further player commands (such as play) are executed until we're done.
-            session.addToCommandQueueThenFlush(controller) { Futures.transform(itemsFuture,
-                { null }, MoreExecutors.directExecutor()) }
             return itemsFuture
         }
         return Futures.immediateFuture(
@@ -932,14 +925,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         isForPlayback: Boolean
     ): ListenableFuture<MediaItemsWithStartPosition> {
         val settable = SettableFuture.create<MediaItemsWithStartPosition>()
-        if (isForPlayback) {
-            scope.launch {
-                lastPlaylistLoaded.await()
-                Util.handlePlayButtonAction(endedWorkaroundPlayer)
-                settable.setException(MediaSession.ManuallyHandlePlaybackResumption())
-            }
-            return settable
-        }
         val job = scope.launch {
             lastPlayedManager.restore { items ->
                 if (items == null) {
@@ -1200,13 +1185,8 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
     }
 
     override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
-        if (deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) {
-            handler.postDelayed({
-                setShowNotificationForEmptyPlayer(SHOW_NOTIFICATION_FOR_EMPTY_PLAYER_NEVER)
-            }, 2000) // TODO lol
-        } else {
-            setShowNotificationForEmptyPlayer(SHOW_NOTIFICATION_FOR_EMPTY_PLAYER_AFTER_STOP_OR_ERROR)
-        }
+        // Stock media3 shows the playback notification during playback by default;
+        // the fork's setShowNotificationForEmptyPlayer tuning is unavailable here.
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
