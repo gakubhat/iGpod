@@ -96,7 +96,6 @@
     <!-- Displayed above app name -->
     <string name="settings_app_name">App name</string>
     <!-- Clicking will open the credits screen -->
-    <string name="settings_contributors">Contributors</string>
     <!-- Play this song next, context menu item -->
     <string name="play_next">Play next</string>
     <!-- Open the album this song is in, context menu item -->
@@ -166,10 +165,7 @@
     <string name="list">List</string>
     <!-- Context menu item submenu title for changing between list and grid display style -->
     <string name="layout">Display</string>
-    <!-- Menu item to open external equalizer app -->
-    <string name="home_menu_equalizer">Equalizer</string>
-    <!-- Error if the external equalizer app isn't installed -->
-    <string name="equalizer_not_found">Equalizer not found!</string>
+    <string name="home_menu_igeeta_sync">iGeeta Sync</string>
     <!-- Display style where songs/albums/etc are displayed as list, but smaller -->
     <string name="compact_list">List (compact)</string>
     <!-- In about screen, link to our Telegram channel -->
@@ -186,7 +182,6 @@
     <string name="playlist_favourite">Favourites</string>
     <!-- Shows a list of contributors' nicknames like "someDeveloperA, someDeveloperB,
     someDeveloperC (click for more!)" and clicking opens credits screen -->
-    <string name="settings_contributors_click">%s (click for more!)</string>
     <!-- Accessibility name for bars animation on a song in a list, showing this is the playling song -->
     <string name="now_playing">Now playing</string>
     <!-- In appearance settings, change between album based color and system wide color. Subtext -->
@@ -196,7 +191,6 @@
     <!-- In about screen, explain where the app APK is from (Google Play, GitHub, etc) -->
     <string name="settings_package_type">Package type</string>
     <!-- Shown if user clicks on lyrics icon but the song doesn't contain any lyrics in metadata -->
-    <string name="no_lyric_found">No lyric found</string>
     <!-- Shown next to song's CD number in detail UI -->
     <string name="dialog_disc_number">Disc number</string>
     <!-- Used in place of the song name if the song name can't be found unexpectedly -->
@@ -224,15 +218,12 @@
     <!-- Settings category about song filter, playing and other app behavior settings. Subtext -->
     <string name="settings_behavior_summary">Filters, launch behaviors</string>
     <!-- Shown as category header in about app screen above GitHub and Telegram links -->
-    <string name="settings_category_links">Links</string>
     <!-- Settings category about songs (currently disabled). Title -->
     <string name="settings_library">Library</string>
     <!-- Settings category about songs (currently disabled). Subtext -->
     <string name="settings_library_summary">Manage media library</string>
     <!-- Settings category about audio playback. Title -->
-    <string name="settings_player_options">Audio</string>
     <!-- Settings category about audio playback. Subtext -->
-    <string name="settings_player_options_summary">Output quality, playback behavior</string>
     <!-- Settings category about customizing UI (currently disabled). Title -->
     <string name="settings_customization">Customization</string>
     <!-- Settings category about customizing UI (currently disabled). Subtext -->
@@ -244,43 +235,26 @@
     <!-- Toggle in player UI settings to make song name bold. Subtext -->
     <string name="settings_title_bold_summary">Use bold title for full player</string>
     <!-- Settings category about experimental features. Title -->
-    <string name="settings_experimental_settings">Experimental</string>
     <!-- Settings category about experimental features. Subtext -->
-    <string name="settings_experimental_settings_summary">Testing features, misc</string>
     <!-- Toggle which makes color detection for album cover based color use more CPU to detect the
     color, which improves accuracy but causes some lags on old devices. Subtext -->
-    <string name="settings_color_accuracy_summary">Make color generation accurate</string>
     <!-- Toggle which makes color detection for album cover based color use more CPU to detect the
     color, which improves accuracy but causes some lags on old devices. Title -->
-    <string name="settings_color_accuracy">Color accuracy</string>
     <!-- Sort songs by date created (of file) -->
     <string name="sort_by_add_date">Add date</string>
     <!-- Sort songs by date modified (of file) -->
     <string name="sort_by_modified_date">Modified date</string>
     <!-- Window title of settings subcategory in player UI settings about the lyrics feature -->
-    <string name="settings_lyric">Lyric</string>
     <!-- Settings subcategory in player UI settings about the lyrics feature. Title -->
-    <string name="settings_lyrics_configuration">Lyrics configuration</string>
     <!-- Settings subcategory in player UI settings about the lyrics feature. Subtext -->
-    <string name="settings_lyrics_configuration_summary">Configure lyrics appearance</string>
     <!-- Toggle in lyrics settings to make all lyrics bold. Title -->
-    <string name="settings_lyrics_bold">Bold lyrics</string>
     <!-- Toggle in lyrics settings to make all lyrics bold. Subtext -->
-    <string name="settings_lyrics_bold_summary">Use a heavier font weight for lyrics</string>
     <!-- Toggle in lyrics settings to make all lyrics display in center instead of left. Title -->
-    <string name="settings_lyrics_center">Center alignment</string>
     <!-- Toggle in lyrics settings to make all lyrics display in center instead of left. Subtitle -->
-    <string name="settings_lyrics_center_summary">Use center alignment for lyrics</string>
     <!-- Toggle in behavior settings to make app start playing music when opening it. Title -->
     <string name="settings_play_on_launch">Play on launch</string>
     <!-- Toggle in behavior settings to make app start playing music when opening it. Subtitle -->
     <string name="settings_play_on_launch_summary">Play music on launch</string>
-    <!-- Window title of submenu in behavior settings to exclude songs that are in specific folders -->
-    <string name="settings_blacklist">Blacklist</string>
-    <!-- Toggle in behavior settings to exclude songs that are in specific folders. Subtext -->
-    <string name="settings_blacklist_folder_summary">Filter songs from certain folders</string>
-    <!-- Toggle in behavior settings to exclude songs that are in specific folders. Title -->
-    <string name="settings_blacklist_folder">Blacklist folders</string>
     <!-- Used in about screen to show basic info about app (version, APK source, etc) -->
     <string name="settings_category_basic_info">Basic info</string>
     <!-- Settings category label for misc -->
@@ -292,9 +266,7 @@
     <!-- Settings category label for player UI settings that apply to full player (display current song) -->
     <string name="settings_category_full_player">Full player</string>
     <!-- Only used for debugging, not generally user visible -->
-    <string name="settings_crash_application">Crash application</string>
     <!-- Only used for debugging, not generally user visible -->
-    <string name="settings_crash_application_summary">Crash-O-Matic 3000</string>
     <!-- Shown next to song's album cover in detail UI -->
     <string name="album_cover">Album cover</string>
     <!-- Context menu item to edit song metadata (currently disabled) -->
@@ -319,7 +291,6 @@
     <string name="crash_clipboard">Copied crash log to clipboard</string>
     <string name="crash_thread" translatable="false">Thread</string>
     <!-- Settings toggle in lyrics UI to remove spaces at start and end of text. Title -->
-    <string name="settings_trim_lyrics">Remove spaces around lyrics</string>
     <!-- Tooltip and dialog title for sleep timer in full player -->
     <string name="timer">Sleep timer</string>
     <!-- Tooltip and dialog title for playback speed in full player -->
@@ -329,7 +300,7 @@
     <!-- Used in playback speed dialog to control pitch, next to slider -->
     <string name="pitch">Pitch</string>
     <!-- Ex: "Tempo: 2.00" for double speed -->
-    <string name="tempo_pitch_value">%s: %.2fx</string>
+    <string name="tempo_pitch_value" formatted="false">%s: %.2fx</string>
     <!-- Used in playback speed dialog to ensure tempo and pitch stay the same, check box label -->
     <string name="lock_tempo_pitch">Lock tempo and pitch</string>
     <!-- Used in playback speed to restore default tempo and pitch -->
@@ -389,15 +360,10 @@
     <!-- Accessibility label for seek bar to control song position -->
     <string name="position_slider">Position slider</string>
     <!-- Settings toggle to enable newer lyrics rendering code. Title -->
-    <string name="settings_lyrics_ui">Enable new lyric UI</string>
     <!-- Settings toggle to enable newer lyrics rendering code. Subtext -->
-    <string name="settings_lyrics_ui_summary">Experimental UI to display word-by-word lyric with advanced features</string>
     <!-- Settings toggle to enable showing lyrics in status bar (requires meizu phone). Title -->
-    <string name="settings_status_bar_lyrics_title">Status bar lyrics</string>
     <!-- Settings toggle to enable showing lyrics in status bar (requires meizu phone). Subtext -->
-    <string name="settings_status_bar_lyrics_summary">Enable MeiZu method of displaying lyrics in status bar (only available on some devices)</string>
     <!-- Description shown about lyric widget in Android launcher / home screen's widget selector on Android 12+ -->
-    <string name="lyric_widget_description">Widget that shows lyrics of currently playing media</string>
     <!-- Context menu item to delete song/album/playlist -->
     <string name="delete">Delete</string>
     <!-- Dialog text to confirm user wants to delete a specific song or playlist with user defined name -->
@@ -698,13 +664,10 @@
     <!-- Shown in audio file preview to move from preview which is a simple dialog, to full app -->
     <string name="open_in_gramophone">Open in Gramophone</string>
     <!-- Settings toggle in lyrics UI to remove spaces at start and end of text. Subtext -->
-    <string name="settings_trim_lyrics_summary">Spaces before the first letter or after the end of a lyric line may have artistic value. If you disagree, you can turn on this toggle to remove these spaces automatically.</string>
     <!-- Error message if file can't be played for any reason -->
     <string name="cannot_play_file">Cannot play this file</string>
     <!-- Settings toggle in lyrics UI to disable animations in lyrics. Title -->
-    <string name="settings_lyrics_no_animation">Disable animations</string>
     <!-- Settings toggle in lyrics UI to disable animations in lyrics. Subtext -->
-    <string name="settings_lyrics_no_animation_summary">Disable all line transition lyric animations</string>
     <!-- Shown next to song's bit rate (like "128 kbps") in detail UI -->
     <string name="dialog_bitrate">Bitrate</string>
     <!-- Showing the song's bit rate (like "128 kbps") in detail UI -->
@@ -724,7 +687,6 @@
     <!-- Error message if sending crash report failed -->
     <string name="send_email_manually">Please send log to nift4dev@gmail.com - can\'t find mail app</string>
     <!-- Error message if lyrics were found but are corrupted or in unsupported format -->
-    <string name="failed_to_parse_lyric">Failed to parse lyrics</string>
     <!-- Title of dialog which shows playback path (formats, sample rates, devices, changes in those). -->
     <string name="audio_signal_chain">Audio signal chain</string>
     <!-- Error message of dialog which shows playback path if no data is available -->
@@ -743,7 +705,6 @@
     <string name="mix_port_flag_spatializer">Spatializer</string>
     <!-- This is one of the output settings supported by Android. It's used to display playback path
     of active playback. These are technical terms so it may not be directly translatable. -->
-    <string name="mix_port_flag_gapless_offload">Gapless offload</string>
     <!-- This is one of the output settings supported by Android. It's used to display playback path
     of active playback. These are technical terms so it may not be directly translatable. -->
     <string name="mix_port_flag_incall_music">In-call music</string>
@@ -776,7 +737,6 @@
     <string name="mix_port_flag_non_blocking">Non-blocking</string>
     <!-- This is one of the output settings supported by Android. It's used to display playback path
     of active playback. These are technical terms so it may not be directly translatable. -->
-    <string name="mix_port_flag_compress_offload">Compressed offload</string>
     <!-- This is one of the output settings supported by Android. It's used to display playback path
     of active playback. These are technical terms so it may not be directly translatable. -->
     <string name="mix_port_flag_deep_buffer">Deep buffer</string>
@@ -1006,17 +966,10 @@
     <!-- Used if no email program is installed -->
     <string name="email_clipboard">Copied e-mail address and text to clipboard</string>
     <!-- Settings item to create .txt file with app logs, used for diagnosing issues -->
-    <string name="settings_export_logs">Export app logs</string>
-    <!-- Toggle in player UI settings to show sample rate, bit depth, etc in full player. Title -->
-    <string name="settings_audio_quality_info">Audio quality info</string>
-    <!-- Toggle in player UI settings to show sample rate, bit depth, etc in full player. Subtext -->
-    <string name="settings_audio_quality_info_summary">Show audio quality/format information on the player screen</string>
     <!-- This is one of the possible audio formats supported by Android. It's used to display
     supported output formats by device and playback path of active playback. -->
-    <string name="spk_encoding_pcm_16bit_offload">16-bit PCM Offload</string>
     <!-- This is one of the possible audio formats supported by Android. It's used to display
     supported output formats by device and playback path of active playback. -->
-    <string name="spk_encoding_pcm_24bit_offload">24-bit (8.24) PCM offload</string>
     <!-- Toggle in lyrics settings to draw gradient animation if parent foreign-language line has
     gradient animation but we don't have timing data for the translated line. Title -->
     <string name="settings_translation_auto_word">Auto-animate translations</string>
@@ -1065,27 +1018,16 @@
     <!-- Error if no internet browser is installed but user clicks a link -->
     <string name="no_app_found">No app found that can do this</string>
     <!-- Shown below the lead developer's nickname in about screen -->
-    <string name="contributors_nift4">Maintainer / Lead Developer</string>
     <!-- Shown below the lead designer's nickname in about screen -->
-    <string name="contributors_123duo3">Lead Designer</string>
     <!-- Shown below the original creator's nickname in about screen -->
-    <string name="contributors_akanetan">Original creator, retired developer</string>
     <!-- Shown below other developer's nickname in about screen -->
-    <string name="contributors_developer">Developer</string>
     <!-- Shown below a contributor's nickname in about screen -->
-    <string name="contributors_wstxda">designed one variation of app icon</string>
     <!-- Shown below a contributor's nickname in about screen -->
-    <string name="contributors_pxeemo">Help &amp; testing of new lyrics</string>
     <!-- Shown below a contributor's nickname in about screen. SongSync is an app name -->
-    <string name="contributors_lambada10">providing lyric samples &amp; SongSync</string>
     <!-- Shown below a contributor's nickname in about screen -->
-    <string name="contributors_code_contributions">Code contributions</string>
     <!-- Shown below a contributor's nickname in about screen. This is the feature they worked on -->
-    <string name="contributors_yuyuko1024">Squiggly progress bar</string>
     <!-- Shown below a contributor's nickname in about screen. This is the feature they worked on -->
-    <string name="contributors_ghhccghk">Status Bar lyrics &amp; other improvements</string>
     <!-- Shown below a contributor's nickname in about screen -->
-    <string name="contributors_saladnoober">Quality Assurance</string>
     <!-- Home menu item to refresh song list quickly -->
     <string name="home_menu_quick_refresh">Quick refresh</string>
     <!-- Context menu item to add song to currently playing queue (as opposed to playlist which is
@@ -1094,11 +1036,8 @@
     <!-- Three-state dialog toggle if a feature is disabled -->
     <string name="disabled">Disabled</string>
     <!-- Three-state dialog toggle if a feature is enabled -->
-    <string name="offload_enabled_if_supported">Always enabled</string>
     <!-- Three-state dialog toggle if a feature is conditionally enabled -->
-    <string name="offload_enabled_if_gapless">Enabled if gapless playback possible</string>
     <!-- Dialog title for audio offload feature. Offload is a technical term -->
-    <string name="settings_audio_offload">Audio offload (saves battery)</string>
     <!-- Shown above the link to our group in about screen -->
     <string name="settings_telegram">Telegram</string>
     <!-- This is one of the possible audio formats supported by Android. It's used to display
@@ -1128,26 +1067,18 @@
     <!-- Error in renaming playlist dialog when an letter is used which isn't supported by FAT32 -->
     <string name="forbidden_symbol_error">Invalid character in the name</string>
     <!-- Used in about screen to credit every translator with their Weblate display name -->
-    <string name="translators">Translators</string>
     <!-- Used in audio settings, this is a technical/"brand" name for an interoperable audio
     loudness normalization feature established since 2002 -->
-    <string name="settings_replaygain">ReplayGain</string>
     <!-- Change the ReplayGain (this is a technical/"brand" name for an interoperable audio loudness
     normalization feature established since 2002) mode between off, Preserve album dynamics, All
     tracks equal loudness and Smart -->
-    <string name="settings_replaygain_mode">Mode</string>
     <!-- Change the pre-amplification (to amplify: to increase the strength of a sound; make louder)
     of music which has ReplayGain tags. Title. Also explained more below -->
-    <string name="settings_replaygain_preamp">Pre amp</string>
     <!-- Change the pre-attenuation (to attenuate: to make something less or weaker) of music which
     has no ReplayGain tags. Title. Also explained more below -->
-    <string name="settings_replaygain_no_rg_amp">Attenuation (no RG)</string>
     <!-- Title for Boost feature in Audio menu which is explained more below -->
-    <string name="settings_replaygain_boost">Boost</string>
     <!-- Title for DRC feature in ReplayGain menu which is explained more below -->
-    <string name="settings_replaygain_drc">Enable DRC</string>
     <!-- Explanation for DRC feature in ReplayGain menu. DRC is a technical term -->
-    <string name="settings_replaygain_drc_desc">Use \"Dynamic Range Compression\" as clipping protection (recommended). If disabled, volume will be reduced instead (volume will not be at the same level, destroying normalization effect).</string>
     <!-- One of the possible ReplayGain modes -->
     <string name="track_gain">All tracks equal loudness</string>
     <!-- One of the possible ReplayGain modes -->
@@ -1158,17 +1089,13 @@
     <string name="scroll_to_playing">Scroll to playing song</string>
     <!-- Text in queue which shows how much time is remaning. Ex "01:20:00 remaining, 02:00:00 total"
     for a two-hour-long queue after 40 minutes already passed. -->
-    <string name="duration_queue">%s remaining, %s total</string>
+    <string name="duration_queue" formatted="false">%s remaining, %s total</string>
     <!-- Unit decibels for loudness, used in audio and ReplayGain settings -->
     <string name="d_db">%d dB</string>
     <!-- Detailed explanation for Boost feature in Audio settings -->
-    <string name="settings_replaygain_boost_desc" formatted="false">"\"Boost\" will output both ReplayGain and other music at a higher volume than what is set in your device. (If your device volume is set close to 100%, Boost will not increase the volume). With Boost, you can enjoy music that has similar loudness to other apps, such as games. Please note that this feature is experimental and may interfere with external equalizer apps. Boost does not work with Bluetooth headphones. In case of any volume-related issues, please disable Boost by setting it to 0 dB. "</string>
     <!-- Detailed explanation for "Attenuation (no RG)" feature in ReplayGain settings -->
-    <string name="settings_replaygain_no_rg_amp_desc">Reduce volume for loud songs that do not have ReplayGain tags</string>
     <!-- Detailed explanation for "Pre amp" feature in ReplayGain settings -->
-    <string name="settings_replaygain_preamp_desc">Increase or decrease the volume of songs with ReplayGain tags. Higher values may cause loss of dynamics due to clipping prevention.</string>
     <!-- Detailed explanation for "Smart" mode in ReplayGain settings -->
-    <string name="settings_replaygain_mode_desc">\"Smart\" automatically preserves album dynamics only when playing songs from an album consecutively.</string>
     <!-- Sort songs by the artist, and then the song's release year -->
     <string name="sort_by_artist_year"><![CDATA[Artist -> year]]></string>
     <!-- Empty the queue and stop playing music. Next to trash can swipe icon -->
@@ -1207,7 +1134,6 @@
     <!-- Notification channel for errors while the app is closed -->
     <string name="error_in_bg">Errors occurring in the background</string>
     <!-- Tab in blacklist menu in behavior settings for configuring whitelist -->
-    <string name="settings_whitelist">Whitelist</string>
     <!-- Explaining how whitelist and blacklist interact as info box to the user -->
     <string name="whitelist_and_blacklist">If no folders are selected in the Whitelist, all folders will be allowed.\n\nWhitelist and Blacklist are applied together, with Blacklist taking priority. For example, you can allow a folder in the Whitelist while excluding one of its subfolders in the Blacklist.</string>
     <!-- Ask the user if they really want to delete the changes they made in the playlist editor and
@@ -1308,16 +1234,16 @@ supporting local search. This string is displayed in the search bar when using G
     <string name="igeeta_last_sync">Last Sync</string>
     <string name="igeeta_last_sync_never">Never</string>
     <string name="igeeta_synced_count">Synced Playlists</string>
-    <string name="igeeta_open_sync">Sync Now</string>
+    <string name="igeeta_open_sync">Sync</string>
     <string name="igeeta_open_sync_summary">Open sync page to select and sync playlists</string>
     <string name="igeeta_sync_title">iGeeta Sync</string>
     <string name="igeeta_available_playlists">Available Playlists</string>
-    <string name="igeeta_sync_button">Sync Now</string>
+    <string name="igeeta_sync_button">Sync</string>
     <string name="igeeta_select_all">Select All</string>
     <string name="igeeta_sync_progress">Sync Progress</string>
     <string name="igeeta_sync_complete">Sync Complete</string>
     <string name="igeeta_sync_error">Sync Error</string>
-    <string name="igeeta_tracks_synced">%d/%d tracks synced</string>
+    <string name="igeeta_tracks_synced" translatable="false">%d/%d tracks synced</string>
     <string name="igeeta_rating_pushed">Pushed %d rating changes</string>
     <string name="igeeta_no_server">Configure server in Settings first</string>
     <string name="rate">Rate</string>

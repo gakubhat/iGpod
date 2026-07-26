@@ -197,7 +197,7 @@ class FlowReader(
     ) =
         // iGeeta: use database mode if configured
         if (useDatabase && syncDb != null && dbRootPath != null) {
-            DbReader.readFromDatabase(syncDb, dbRootPath)
+            DbReader.readFromDatabase(syncDb, dbRootPath, context)
         } else if (context.hasAudioPermission() && (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
                     MediaStore.getExternalVolumeNames(context)
                         .contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)))

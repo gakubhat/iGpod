@@ -206,12 +206,27 @@ class SyncManager(private val context: Context) {
 
         // Download artwork (if available and not already present)
         val artworkPath = findArtworkPath(localPath)
-        if (artworkPath == null && serverTrack.artworkUrl != null) {
-            downloadArtwork(api, syncRoot, serverTrack)
-        }
+        android.util.Log.d("SyncManager", "syncTrack ${serverTrack.filePath}: artworkUrl=${serverTrack.artworkUrl != null}, existingSidecar=$artworkPath")
+        val artworkRelName = if (artworkPath == null && serverTrack.artworkUrl != null) {
+            downloadArtwork(api, serverTrack)
+        } else null
 
-        // Determine local artwork path
-        val localArtwork = findArtworkPath(localPath)
+        // Download track-specific art (DB relative path) if provided by server
+        val trackArtRel = serverTrack.trackArtPath
+        val trackArtName = if (trackArtRel.isNotEmpty()) {
+            val ext = File(trackArtRel).extension.ifEmpty { "jpg" }
+            val name = artworkFileName(trackArtRel, ext)
+            val f = File(artworkBaseDir, name)
+            if (!f.exists() || f.length() == 0L) {
+                try {
+                    f.parentFile?.mkdirs()
+                    api.downloadArtwork(trackArtRel, FileOutputStream(f))
+                    name
+                } catch (_: Exception) {
+                    ""
+                }
+            } else name
+        } else ""
 
         // Upsert metadata in DB
         val existingTrack = db.getTrackByPath(serverTrack.filePath)
@@ -236,7 +251,8 @@ class SyncManager(private val context: Context) {
             rating = serverTrack.rating,
             playCount = serverTrack.playCount,
             lastPlayed = serverTrack.lastPlayed,
-            artworkLocalPath = localArtwork?.let { relativize(syncRoot, it) },
+            artworkLocalPath = artworkRelName,
+            trackArtPath = trackArtName,
             // Preserve local rating if it was set and not synced
             localRating = existingTrack?.localRating ?: serverTrack.rating,
             ratingDirty = existingTrack?.ratingDirty ?: 0,
@@ -252,24 +268,39 @@ class SyncManager(private val context: Context) {
     // Artwork
     // -----------------------------------------------------------------------
 
-    private fun downloadArtwork(api: IgeetaApi, syncRoot: File, track: ServerTrack) {
-        try {
-            // artworkUrl is like "/api/artwork?path=..." — extract the path parameter
-            val artworkUrl = track.artworkUrl ?: return
-            val pathParam = extractArtworkPath(artworkUrl) ?: return
-
-            // Determine the extension from the artwork URL path
-            val ext = File(pathParam).extension.ifEmpty { "jpg" }
-            val localBase = File(syncRoot, track.filePath).let {
-                File(it.parent, it.nameWithoutExtension)
-            }
-            val artworkFile = File("$localBase.$ext")
-
+    /**
+     * Download album art. Writes into the app-private artwork directory
+     * (context.filesDir/artwork), which is always writable without storage
+     * permissions — writing directly under /Music/iGeeta fails with EPERM on
+     * scoped storage. Returns the stored file name (relative to the artwork
+     * dir), or null if no art is available / the download failed.
+     */
+    private fun downloadArtwork(api: IgeetaApi, track: ServerTrack): String? {
+        val artworkUrl = track.artworkUrl ?: return null
+        val pathParam = extractArtworkPath(artworkUrl) ?: return null
+        val ext = File(pathParam).extension.ifEmpty { "jpg" }
+        val name = artworkFileName(pathParam, ext)
+        val artworkFile = File(artworkBaseDir, name)
+        if (artworkFile.exists() && artworkFile.length() > 0L) return name
+        return try {
             artworkFile.parentFile?.mkdirs()
             api.downloadArtwork(pathParam, FileOutputStream(artworkFile))
-        } catch (_: Exception) {
-            // Artwork download is best-effort
+            android.util.Log.d("SyncManager", "artwork downloaded -> ${artworkFile.absolutePath} (${artworkFile.length()} bytes)")
+            name
+        } catch (e: Exception) {
+            android.util.Log.w("SyncManager", "artwork download failed for ${track.filePath}: ${e.message}", e)
+            null
         }
+    }
+
+    private val artworkBaseDir: File
+        get() = File(context.filesDir, "artwork").apply { if (!exists()) mkdirs() }
+
+    private fun artworkFileName(relPath: String, ext: String): String {
+        val hash = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(relPath.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return "$hash.$ext"
     }
 
     /**
@@ -288,14 +319,21 @@ class SyncManager(private val context: Context) {
 
     private fun extractArtworkPath(artworkUrl: String): String? {
         // "/api/artwork?path=Classical/track.jpg&t=12345" → "Classical/track.jpg"
+        // The path param is URL-encoded by the server (e.g. %2F for '/'), so decode it
+        // here. IgeetaApi.downloadArtwork re-encodes it once before the request.
         val queryStart = artworkUrl.indexOf("?path=")
         if (queryStart == -1) return null
         val pathStart = queryStart + 6
         val pathEnd = artworkUrl.indexOf("&", pathStart)
-        return if (pathEnd == -1) {
+        val raw = if (pathEnd == -1) {
             artworkUrl.substring(pathStart)
         } else {
             artworkUrl.substring(pathStart, pathEnd)
+        }
+        return try {
+            java.net.URLDecoder.decode(raw, "UTF-8")
+        } catch (_: Exception) {
+            raw
         }
     }
 
@@ -316,10 +354,20 @@ class SyncManager(private val context: Context) {
     }
 
     private suspend fun pullRatings(api: IgeetaApi) {
-        // Pull ratings for all synced tracks
+        // Pull server ratings down for every synced track, but never overwrite a
+        // local edit that hasn't been pushed yet (rating_dirty = 1).
         val allTracks = db.getAllTracks()
-        // Note: This is a simplification. In production, we'd batch this.
-        // For now, we rely on the sync process to update ratings when re-syncing playlists.
+        for (track in allTracks) {
+            if (track.ratingDirty == 1) continue
+            try {
+                val serverTrack = api.getTrack(track.filePath)
+                if (serverTrack.rating != track.rating) {
+                    db.syncServerRating(track.filePath, serverTrack.rating)
+                }
+            } catch (_: Exception) {
+                // Best-effort: skip tracks that fail to fetch.
+            }
+        }
     }
 
     // -----------------------------------------------------------------------

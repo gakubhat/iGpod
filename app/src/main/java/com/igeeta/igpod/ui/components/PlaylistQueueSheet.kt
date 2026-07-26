@@ -32,7 +32,6 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -44,12 +43,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.stateIn
 import com.igeeta.igpod.R
 import com.igeeta.igpod.logic.dpToPx
 import com.igeeta.igpod.logic.getBooleanStrict
@@ -145,26 +139,8 @@ class PlaylistQueueSheet(
                 val coroutineScope = rememberCoroutineScope()
 
                 // TODO: very inelegant.
-                val pureDarkFlow by lazy {
-                    callbackFlow {
-                        val cb = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                            if (key == "pureDark") {
-                                trySendBlocking(prefs.getBooleanStrict("pureDark", false))
-                            }
-                        }
-                        prefs.registerOnSharedPreferenceChangeListener(cb)
-                        awaitClose {
-                            prefs.unregisterOnSharedPreferenceChangeListener(cb)
-                        }
-                    }.stateIn(
-                        lifecycleScope, WhileSubscribed(),
-                        prefs.getBooleanStrict("pureDark", false)
-                    )
-                }
-                val pureDark by pureDarkFlow.collectAsState()
 
                 GramophoneTheme(
-                    pureDark = pureDark
                 ) {
                     val mqState =
                         rememberMqState(

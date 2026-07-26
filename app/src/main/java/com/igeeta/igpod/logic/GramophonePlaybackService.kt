@@ -19,8 +19,6 @@ package com.igeeta.igpod.logic
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
-import android.bluetooth.BluetoothCodecStatus
-import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.ContentUris
@@ -29,7 +27,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Bitmap
-import android.media.AudioDeviceInfo
 import android.media.audiofx.AudioEffect
 import android.net.Uri
 import android.os.Build
@@ -45,19 +42,16 @@ import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.IntentCompat
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.BundleListRetriever
 import androidx.media3.common.C
 import androidx.media3.common.DeviceInfo
-import androidx.media3.common.Format
 import androidx.media3.common.HeartRating
 import androidx.media3.common.IllegalSeekPositionException
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
@@ -73,7 +67,6 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
-import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.LoadEventInfo
 import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
@@ -114,28 +107,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import com.igeeta.igpod.R
-import com.igeeta.igpod.logic.ui.MeiZuLyricsMediaNotificationProvider
-import com.igeeta.igpod.logic.ui.isManualNotificationUpdate
-import com.igeeta.igpod.logic.utils.AfFormatInfo
-import com.igeeta.igpod.logic.utils.AfFormatTracker
-import com.igeeta.igpod.logic.utils.AudioTrackInfo
-import com.igeeta.igpod.logic.utils.BtCodecInfo
 import com.igeeta.igpod.logic.utils.CircularShuffleOrder
 import com.igeeta.igpod.logic.utils.Flags
 import com.igeeta.igpod.logic.utils.LastPlayedManager
-import com.igeeta.igpod.logic.utils.LrcUtils.LrcParserOptions
-import com.igeeta.igpod.logic.utils.LrcUtils.extractAndParseLyrics
-import com.igeeta.igpod.logic.utils.LrcUtils.loadAndParseLyricsFile
 import com.igeeta.igpod.logic.utils.MediaItemList
-import com.igeeta.igpod.logic.utils.ReplayGainAudioProcessor
-import com.igeeta.igpod.logic.utils.ReplayGainUtil
-import com.igeeta.igpod.logic.utils.SemanticLyrics
 import com.igeeta.igpod.logic.utils.exoplayer.EndedWorkaroundPlayer
 import com.igeeta.igpod.logic.utils.exoplayer.GramophoneExtractorsFactory
 import com.igeeta.igpod.logic.utils.exoplayer.GramophoneMediaSourceFactory
-import com.igeeta.igpod.logic.utils.exoplayer.GramophoneRenderFactory
-import com.igeeta.igpod.ui.AudioPreviewActivity
-import com.igeeta.igpod.ui.LyricWidgetProvider
 import com.igeeta.igpod.ui.MainActivity
 import org.nift4.mediastorecompat.MediaStoreCompat
 import uk.akane.libphonograph.dynamicitem.Favorite
@@ -168,9 +146,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
 
         const val SERVICE_SET_TIMER = "set_timer"
         const val SERVICE_QUERY_TIMER = "query_timer"
-        const val SERVICE_GET_AUDIO_FORMAT = "get_audio_format"
-        const val SERVICE_GET_LYRICS = "get_lyrics"
-        const val SERVICE_TIMER_CHANGED = "changed_timer"
+            const val SERVICE_TIMER_CHANGED = "changed_timer"
         const val SERVICE_SET_MEDIA_ITEMS_SEAMLESSLY = "set_media_items_seamlessly"
         const val SERVICE_SET_MEDIA_ITEMS_ATOMIC = "set_media_items_atomic"
 
@@ -184,8 +160,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
 
         const val SERVICE_QB_AGE = "qb_age"
 
-        var instanceForWidgetAndLyricsOnly: GramophonePlaybackService? = null
-    }
+        }
 
     private var lastSessionId = 0
     private val internalPlaybackThread =
@@ -195,11 +170,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         get() = mediaSession?.player as EndedWorkaroundPlayer?
     private var controller: MediaBrowser? = null
     lateinit var qb: QueueBoard
-    private val sendLyrics = Runnable { scheduleSendingLyrics(false) }
-    var lyrics: SemanticLyrics? = null
-        private set
-    val syncedLyrics
-        get() = lyrics as? SemanticLyrics.SyncedLyrics
     private lateinit var customCommands: List<CommandButton>
     private lateinit var handler: Handler
     private lateinit var mainExecutor: Executor
@@ -207,28 +177,8 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
     private lateinit var nm: NotificationManagerCompat
     private lateinit var lastPlayedManager: LastPlayedManager
     private lateinit var prefs: SharedPreferences
-    private var lastSentHighlightedLyric: String? = null
-    private lateinit var afFormatTracker: AfFormatTracker
-    private lateinit var rgAp: ReplayGainAudioProcessor
-    private var rgMode = 0 // 0 = disabled, 1 = track, 2 = album, 3 = smart
-    private var updatedLyricAtLeastOnce = false
-    private val downstreamFormat = hashSetOf<Pair<Any, Pair<Int, Format>>>()
-    private val pendingDownstreamFormat = hashSetOf<Pair<Any, Pair<Int, Format>>>()
-    private var afTrackFormat: Pair<Any, AfFormatInfo>? = null
-    private val pendingAfTrackFormats = hashMapOf<Any, AfFormatInfo>()
-    private var audioSinkInputFormat: Format? = null
-    private var audioTrackInfo: AudioTrackInfo? = null
-    private var audioTrackInfoCounter = 0
-    private var audioTrackReleaseCounter = 0
-
-    // only used for formats where this is significant for quality, but not in header (opus)
-    private var bitrate: Int? = null
-    private var btInfo: BtCodecInfo? = null
-    private var proxy: BtCodecInfo.Companion.Proxy? = null
     private val scope = CoroutineScope(Dispatchers.Main)
     private val lastPlaylistLoaded = CompletableDeferred<Unit>()
-    private val lyricsFetcher = CoroutineScope(Dispatchers.IO.limitedParallelism(1))
-    private val bitrateFetcher = CoroutineScope(Dispatchers.IO.limitedParallelism(1))
 
     private fun getRepeatCommand() =
         when (controller!!.repeatMode) {
@@ -276,27 +226,9 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         }
     }
 
-    private val btReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action.equals("android.bluetooth.a2dp.profile.action.CODEC_CONFIG_CHANGED") &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O /* before 8, only sbc was supported */
-            ) {
-                btInfo = BtCodecInfo.fromCodecConfig(
-                    @SuppressLint("NewApi") IntentCompat.getParcelableExtra(
-                        intent,
-                        "android.bluetooth.extra.CODEC_STATUS",
-                        BluetoothCodecStatus::class.java
-                    )?.codecConfig
-                )
-                Log.d(TAG, "new bluetooth codec config $btInfo")
-            }
-        }
-    }
-
     override fun onCreate() {
         Log.i(TAG, "+onCreate()")
         super.onCreate()
-        instanceForWidgetAndLyricsOnly = this
         internalPlaybackThread.start()
         playbackHandler = Handler(internalPlaybackThread.looper)
         handler = Handler(Looper.getMainLooper())
@@ -305,9 +237,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         qb = QueueBoard(this)
         setListener(this)
-        setMediaNotificationProvider(
-            MeiZuLyricsMediaNotificationProvider(this) { lastSentHighlightedLyric }
-        )
         setForegroundServiceTimeoutMs(120000)
         setShowNotificationForEmptyPlayer(SHOW_NOTIFICATION_FOR_EMPTY_PLAYER_AFTER_STOP_OR_ERROR)
         nm.createNotificationChannel(
@@ -346,48 +275,16 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                     .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE, Player.REPEAT_MODE_OFF)
                     .build(),
             )
-        afFormatTracker = AfFormatTracker(this, playbackHandler, handler)
-        afFormatTracker.formatChangedCallback = { format, period ->
-            if (period != null) {
-                handler.post {
-                    val currentPeriod = endedWorkaroundPlayer?.exoPlayer?.currentPeriodIndex
-                        ?.takeIf { it != C.INDEX_UNSET && (endedWorkaroundPlayer?.exoPlayer
-                            ?.currentTimeline?.periodCount ?: 0) > it }?.let {
-                                endedWorkaroundPlayer!!.exoPlayer.currentTimeline
-                                    .getUidOfPeriod(it) }
-                    if (currentPeriod != period) {
-                        if (format != null) {
-                            pendingAfTrackFormats[period] = format
-                        } else {
-                            pendingAfTrackFormats.remove(period)
-                        }
-                    } else {
-                        afTrackFormat = format?.let { period to it }
-                        mediaSession?.broadcastCustomCommand(
-                            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                            Bundle.EMPTY
-                        )
-                    }
-                }
-            } else {
-                Log.e(TAG, "mediaPeriodId is NULL in formatChangedCallback!!")
-            }
-        }
-        rgAp = ReplayGainAudioProcessor()
         prefs.registerOnSharedPreferenceChangeListener(this)
         onSharedPreferenceChanged(prefs, null) // read initial values
         val player = EndedWorkaroundPlayer(
             this,
             exoPlayer = ExoPlayer.Builder(
                 this,
-                GramophoneRenderFactory(
-                    this, rgAp, this::onAudioSinkInputFormatChanged,
-                    afFormatTracker::setAudioSink
-                )
-                    .setPcmEncodingRestrictionLifted(true)
-                    .setEnableDecoderFallback(true)
-                    .setEnableAudioTrackPlaybackParams(true)
-                    .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
+                DefaultRenderersFactory(this)
+                .setEnableDecoderFallback(true)
+                .setEnableAudioTrackPlaybackParams(true)
+                .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
                 GramophoneMediaSourceFactory(
                     DefaultDataSource.Factory(this),
                     GramophoneExtractorsFactory().also {
@@ -414,7 +311,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                                     val config =
                                         prefs.getStringStrict("offload", "0")?.toIntOrNull()
                                     if (config != null && config > 0 && Flags.OFFLOAD) {
-                                        rgAp.setOffloadEnabled(true)
                                         setAudioOffloadMode(TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
                                         setIsGaplessSupportRequired(config == 2)
                                     }
@@ -423,11 +319,9 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                 })
                 .setPlaybackLooper(internalPlaybackThread.looper)
                 .build(),
-            { lyrics },
-            queueBoard = qb,
+                queueBoard = qb,
         )
         player.exoPlayer.addAnalyticsListener(EventLogger())
-        player.exoPlayer.addAnalyticsListener(afFormatTracker)
         player.exoPlayer.addAnalyticsListener(this)
         player.exoPlayer.setShuffleOrder(CircularShuffleOrder(player, 0, 0, Random.nextLong()))
         lastPlayedManager = LastPlayedManager(this, player)
@@ -547,25 +441,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
             @SuppressLint("WrongConstant") // why is this needed?
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
-        ContextCompat.registerReceiver(
-            this,
-            btReceiver,
-            IntentFilter("android.bluetooth.a2dp.profile.action.CODEC_CONFIG_CHANGED"),
-            @SuppressLint("WrongConstant") // why is this needed?
-            ContextCompat.RECEIVER_EXPORTED
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O /* before 8, only sbc was supported */) {
-            scope.launch(Dispatchers.IO) {
-                proxy = BtCodecInfo.getCodec(this@GramophonePlaybackService) {
-                    Log.d(TAG, "first bluetooth codec config $btInfo")
-                    btInfo = it
-                    mediaSession?.broadcastCustomCommand(
-                        SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                        Bundle.EMPTY
-                    )
-                }
-            }
-        }
         scope.launch {
             lastPlayedManager.restore { items ->
                 if (mediaSession == null) return@restore
@@ -770,9 +645,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
     // alongside with the mediaSession.
     override fun onDestroy() {
         Log.i(TAG, "+onDestroy()")
-        instanceForWidgetAndLyricsOnly = null
         unregisterReceiver(seekReceiver)
-        unregisterReceiver(btReceiver)
         prefs.unregisterOnSharedPreferenceChangeListener(this)
         // Important: this must happen before sending stop() as that changes state ENDED -> IDLE
         lastPlayedManager.save()
@@ -780,16 +653,12 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         endedWorkaroundPlayer!!.stop()
         handler.removeCallbacks(timer)
         mediaSession!!.setOptOutOfMediaButtonPlaybackResumption(controller!!.currentTimeline.isEmpty)
-        proxy?.let {
-            it.adapter.closeProfileProxy(BluetoothProfile.A2DP, it.a2dp)
-        }
         controller!!.release()
         controller = null
         mediaSession!!.release()
         endedWorkaroundPlayer!!.release()
         mediaSession = null
         broadcastAudioSessionClose()
-        LyricWidgetProvider.update(this)
         internalPlaybackThread.quitSafely()
         super.onDestroy()
         Log.i(TAG, "-onDestroy()")
@@ -827,8 +696,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         }
         availableSessionCommands.add(SessionCommand(SERVICE_SET_TIMER, Bundle.EMPTY))
         availableSessionCommands.add(SessionCommand(SERVICE_QUERY_TIMER, Bundle.EMPTY))
-        availableSessionCommands.add(SessionCommand(SERVICE_GET_LYRICS, Bundle.EMPTY))
-        availableSessionCommands.add(SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY))
         availableSessionCommands.add(SessionCommand(SERVICE_SET_MEDIA_ITEMS_SEAMLESSLY, Bundle.EMPTY))
         availableSessionCommands.add(SessionCommand(SERVICE_SET_MEDIA_ITEMS_ATOMIC, Bundle.EMPTY))
         availableSessionCommands.add(SessionCommand(SERVICE_QB_GET_INACTIVE_LIST, Bundle.EMPTY))
@@ -843,16 +710,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
 
     override fun onPostConnect(session: MediaSession, controller: MediaSession.ControllerInfo) {
         Log.i(TAG, "onPostConnect(): $controller")
-        session.sendCustomCommand(
-            controller,
-            SessionCommand(SERVICE_GET_LYRICS, Bundle.EMPTY),
-            Bundle.EMPTY
-        )
-        session.sendCustomCommand(
-            controller,
-            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-            Bundle.EMPTY
-        )
     }
 
     override fun onDisconnected(session: MediaSession, controller: MediaSession.ControllerInfo) {
@@ -861,56 +718,10 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
         var restart = false
-        if (key == null || key == "rg_mode") {
-            rgMode = prefs.getStringStrict("rg_mode", "0")!!.toInt()
-            restart = !computeRgMode(true)
-        }
-        if (key == null || key == "rg_drc") {
-            val drc = prefs.getBooleanStrict("rg_drc", true)
-            restart = !rgAp.setReduceGain(!drc) || restart
-        }
-        if (key == null || key == "rg_rg_gain") {
-            val rgGain = prefs.getIntStrict("rg_rg_gain", 19)
-            restart = !rgAp.setRgGain(rgGain - 15) || restart
-        }
-        if (key == null || key == "rg_no_rg_gain") {
-            val nonRgGain = prefs.getIntStrict("rg_no_rg_gain", 0)
-            restart = !rgAp.setNonRgGain(-nonRgGain) || restart
-        }
-        if (key == null || key == "rg_boost_gain") {
-            val boostGain = prefs.getIntStrict("rg_boost_gain", 0)
-            restart = !rgAp.setBoostGain(boostGain) || restart
-        }
         if (restart) {
             controller?.stop()
             controller?.prepare()
         }
-    }
-
-    private fun computeRgMode(force: Boolean): Boolean {
-        return rgAp.setMode(
-            when (rgMode) {
-                0 -> ReplayGainUtil.Mode.None
-                1 -> ReplayGainUtil.Mode.Track
-                2 -> ReplayGainUtil.Mode.Album
-                3 -> {
-                    val item = controller?.currentMediaItem
-                    val idx = controller?.currentMediaItemIndex ?: 0
-                    val count = controller?.mediaItemCount ?: 0
-                    val next = if (idx + 1 >= count) null else
-                        controller?.getMediaItemAt(idx + 1)
-                    val prev = if (idx - 1 < 0 || count == 0) null else
-                        controller?.getMediaItemAt(idx - 1)
-                    if (item != null && (item.mediaMetadata.albumId == next?.mediaMetadata?.albumId ||
-                                item.mediaMetadata.albumId == prev?.mediaMetadata?.albumId)
-                    )
-                        ReplayGainUtil.Mode.Album
-                    else ReplayGainUtil.Mode.Track
-                }
-
-                else -> throw IllegalArgumentException("invalid rg mode $rgMode")
-            }, !force
-        )
     }
 
     override fun onAudioSessionIdChanged(audioSessionId: Int) {
@@ -1025,44 +836,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                             "pauseOnEnd",
                             this.endedWorkaroundPlayer!!.exoPlayer.pauseAtEndOfMediaItems
                         )
-                    }
-                }
-
-                SERVICE_GET_AUDIO_FORMAT -> {
-                    SessionResult(SessionResult.RESULT_SUCCESS).also { res ->
-                        if (downstreamFormat.isNotEmpty()) {
-                            res.extras.putParcelableArrayList(
-                                "file_format",
-                                ArrayList(downstreamFormat.map {
-                                    Bundle().apply {
-                                        putInt("type", it.second.first)
-                                        val bitrate = bitrate
-                                        // TODO: should this be done here? this will create a new format object every query
-                                        val format = if (it.second.first == C.TRACK_TYPE_AUDIO &&
-                                            bitrate != null &&
-                                            it.second.second.sampleMimeType == MimeTypes.AUDIO_OPUS
-                                        ) {
-                                            it.second.second.buildUpon().setAverageBitrate(bitrate)
-                                                .build()
-                                        } else it.second.second
-                                        putBundle("format", format.toBundle())
-                                        putBundle("rg", ReplayGainUtil.parse(format).toBundle())
-                                    }
-                                })
-                            )
-                        }
-                        res.extras.putBundle("sink_format", audioSinkInputFormat?.toBundle())
-                        res.extras.putParcelable("track_format", audioTrackInfo)
-                        res.extras.putParcelable("hal_format", afTrackFormat?.second)
-                        if (afFormatTracker.format?.routedDeviceType == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
-                            res.extras.putParcelable("bt", btInfo)
-                        }
-                    }
-                }
-
-                SERVICE_GET_LYRICS -> {
-                    SessionResult(SessionResult.RESULT_SUCCESS).also {
-                        it.extras.putParcelable("lyrics", lyrics)
                     }
                 }
 
@@ -1245,72 +1018,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
             controller!!.stop()
         }
 
-        val mediaItem = controller?.currentMediaItem
-        lyricsFetcher.launch {
-            val trim = prefs.getBoolean("trim_lyrics", true)
-            val options = LrcParserOptions(
-                trim = trim, multiLine = true,
-                errorText = getString(R.string.failed_to_parse_lyric)
-            )
-            // TODO: allow multiple lyric files/tags combining them for translations...maybe?
-            val format = tracks.getFirstSelectedTrackFormatByType(C.TRACK_TYPE_AUDIO)
-            var lrc: SemanticLyrics? = null
-            if (format != null) {
-                lrc = loadAndParseLyricsFile(
-                    applicationContext,
-                    mediaItem?.getFile(),
-                    format.sampleMimeType, options
-                )
-                if (lrc == null) {
-                    // note: wav files can have null metadata
-                    val trackMetadata = format.metadata
-                    if (trackMetadata != null) {
-                        lrc = extractAndParseLyrics(
-                            format.sampleRate.takeIf { it != Format.NO_VALUE } ?: 0,
-                            format.sampleMimeType,
-                            trackMetadata,
-                            options).firstOrNull()
-                    }
-                }
-            }
-            withContext(Dispatchers.Main) {
-                mediaSession?.let {
-                    lyrics = lrc
-                    it.broadcastCustomCommand(
-                        SessionCommand(SERVICE_GET_LYRICS, Bundle.EMPTY),
-                        Bundle.EMPTY
-                    )
-                    scheduleSendingLyrics(true)
-                }
-            }
-        }
-    }
-
-    override fun onAudioTrackInitialized(
-        eventTime: AnalyticsListener.EventTime,
-        audioTrackConfig: AudioSink.AudioTrackConfig
-    ) {
-        audioTrackInfoCounter++
-        audioTrackInfo = AudioTrackInfo.fromMedia3AudioTrackConfig(audioTrackConfig)
-        mediaSession?.broadcastCustomCommand(
-            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-            Bundle.EMPTY
-        )
-    }
-
-    override fun onAudioTrackReleased(
-        eventTime: AnalyticsListener.EventTime,
-        audioTrackConfig: AudioSink.AudioTrackConfig
-    ) {
-        // Normally called after the replacement has been initialized, but if old track is released
-        // without replacement, we want to instantly know that instead of keeping stale data.
-        if (++audioTrackReleaseCounter == audioTrackInfoCounter) {
-            audioTrackInfo = null
-            mediaSession?.broadcastCustomCommand(
-                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                Bundle.EMPTY
-            )
-        }
     }
 
     override fun onDownstreamFormatChanged(
@@ -1321,66 +1028,15 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
             Log.e(TAG, "mediaPeriodId is NULL in onDownstreamFormatChanged()!!")
             return
         }
-        val currentPeriod = endedWorkaroundPlayer?.exoPlayer?.currentPeriodIndex?.takeIf {
-            it != C.INDEX_UNSET &&
-                    (endedWorkaroundPlayer?.exoPlayer?.currentTimeline?.periodCount ?: 0) > it
-        }?.let { endedWorkaroundPlayer!!.exoPlayer.currentTimeline.getUidOfPeriod(it) }
-        val item = eventTime.mediaPeriodId!!.periodUid to
-                (mediaLoadData.trackType to mediaLoadData.trackFormat!!)
-        if (currentPeriod != item.first) {
-            pendingDownstreamFormat += item
-        } else {
-            downstreamFormat += item
-            mediaSession?.broadcastCustomCommand(
-                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                Bundle.EMPTY
-            )
-        }
-    }
-
-    private fun onAudioSinkInputFormatChanged(inputFormat: Format?) {
-        audioSinkInputFormat = inputFormat
-        mediaSession?.broadcastCustomCommand(
-            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-            Bundle.EMPTY
-        )
     }
 
     override fun onPlaybackStateChanged(state: Int) {
-        if (state == Player.STATE_IDLE) {
-            var changed = false
-            if (afTrackFormat != null) {
-                Log.e(TAG, "leaked track format: $afTrackFormat")
-                afTrackFormat = null
-                changed = true
-            }
-            if (pendingAfTrackFormats.isNotEmpty()) {
-                Log.e(TAG, "leaked pending track formats: $pendingAfTrackFormats")
-                pendingAfTrackFormats.clear()
-            }
-            if (downstreamFormat.isNotEmpty()) {
-                Log.e(TAG, "leaked downstream formats: $downstreamFormat")
-                downstreamFormat.clear()
-                changed = true
-            }
-            if (pendingDownstreamFormat.isNotEmpty()) {
-                Log.e(TAG, "leaked pending downstream formats: $pendingDownstreamFormat")
-                pendingDownstreamFormat.clear()
-            }
-            if (changed) {
-                mediaSession?.broadcastCustomCommand(
-                    SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                    Bundle.EMPTY
-                )
-            }
-        }
     }
 
     override fun onPlaybackParametersChanged(
         eventTime: AnalyticsListener.EventTime,
         playbackParameters: PlaybackParameters
     ) {
-        scheduleSendingLyrics(false) // if speed changes
     }
 
     override fun onPlayerError(error: PlaybackException) {
@@ -1399,14 +1055,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) {
-            bitrate = null
-            bitrateFetcher.launch {
-                bitrate = mediaItem?.getBitrate(this@GramophonePlaybackService) // TODO subtract cover size
-                this@GramophonePlaybackService.mediaSession?.broadcastCustomCommand(
-                    SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                    Bundle.EMPTY
-                )
-            }
             // TODO: re-enable this when https://github.com/androidx/media/issues/3248 is fixed
             //lyrics = null
             //scheduleSendingLyrics(true)
@@ -1433,7 +1081,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         if (prefs.getBooleanStrict("stopPlayingWhenDismissTask", false) &&
-            rootIntent?.component != ComponentName(this, AudioPreviewActivity::class.java)
+            true // AudioPreviewActivity removed
         ) {
             pauseAllPlayersAndStopSelf()
         } else {
@@ -1442,7 +1090,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
-        scheduleSendingLyrics(false)
         lastPlayedManager.save()
     }
 
@@ -1547,23 +1194,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
             lastPlayedManager.allowSavingState = true
             lastPlaylistLoaded.complete(Unit)
             refreshMediaButtonCustomLayout()
-            if (!computeRgMode(false))
-                throw IllegalStateException("unreachable, mode failed with force=false")
-        }
-        // if it's a remotable timeline, it's a temporary masking timeline and real one will follow
-        if (timeline !is Timeline.RemotableTimeline) {
-            pendingDownstreamFormat.toSet().forEach {
-                if (timeline.getIndexOfPeriod(it.first) == C.INDEX_UNSET) {
-                    // This period is going away.
-                    pendingDownstreamFormat.remove(it)
-                }
-            }
-            pendingAfTrackFormats.toMap().forEach { (key, _) ->
-                if (timeline.getIndexOfPeriod(key) == C.INDEX_UNSET) {
-                    // This period is going away.
-                    pendingAfTrackFormats.remove(key)
-                }
-            }
         }
     }
 
@@ -1587,7 +1217,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         loadEventInfo: LoadEventInfo,
         mediaLoadData: MediaLoadData
     ) {
-        pendingDownstreamFormat.removeAll { eventTime.mediaPeriodId?.periodUid == it.first }
     }
 
     override fun onPositionDiscontinuity(
@@ -1595,107 +1224,6 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         newPosition: Player.PositionInfo,
         reason: Int
     ) {
-        if (oldPosition.periodUid != newPosition.periodUid) {
-            var changed = false
-            downstreamFormat.toSet().forEach {
-                if (newPosition.periodUid != it.first) {
-                    downstreamFormat.remove(it)
-                    changed = true
-                }
-            }
-            pendingDownstreamFormat.toSet().forEach {
-                if (newPosition.periodUid == it.first) {
-                    downstreamFormat.add(it)
-                    pendingDownstreamFormat.remove(it)
-                    changed = true
-                }
-            }
-            if (afTrackFormat?.first != newPosition.periodUid) {
-                afTrackFormat = null
-                changed = true
-            }
-            pendingAfTrackFormats[newPosition.periodUid]?.let { format ->
-                afTrackFormat = newPosition.periodUid!! to format
-                pendingAfTrackFormats.remove(newPosition.periodUid)
-                changed = true
-            }
-            if (changed) {
-                mediaSession?.broadcastCustomCommand(
-                    SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                    Bundle.EMPTY
-                )
-            }
-        }
-        scheduleSendingLyrics(false)
-    }
-
-    private fun scheduleSendingLyrics(new: Boolean) {
-        handler.removeCallbacks(sendLyrics)
-        sendLyricNow(new || !updatedLyricAtLeastOnce)
-        updatedLyricAtLeastOnce = true
-        if (new) {
-            endedWorkaroundPlayer?.updateLyricNow()
-        }
-        val isStatusBarLyricsEnabled = prefs.getBooleanStrict("status_bar_lyrics", false)
-        val hnw = !LyricWidgetProvider.hasWidget(this)
-        if (controller?.isPlaying != true || (!isStatusBarLyricsEnabled && hnw)) return
-        val cPos = (controller?.contentPosition ?: 0).toULong()
-        val nextUpdate = syncedLyrics?.text?.flatMap { line ->
-            if (hnw && line.start <= cPos) listOf() else if (hnw) listOf(line.start) else
-                (line.words?.map { it.timeRange.first }?.filter { it > cPos } ?: listOf())
-                    .let { i -> if (line.start > cPos) i + line.start else i }
-        }?.minOrNull()
-        nextUpdate?.let {
-            handler.postDelayed(
-                sendLyrics, ((it - cPos).toLong()
-                        / (controller?.playbackParameters?.speed ?: 1f)).toLong()
-            )
-        }
-    }
-
-    private fun sendLyricNow(new: Boolean) {
-        if (new)
-            LyricWidgetProvider.update(this)
-        else
-            LyricWidgetProvider.adapterUpdate(this)
-        val isStatusBarLyricsEnabled = prefs.getBooleanStrict("status_bar_lyrics", false)
-        val highlightedLyric = if (isStatusBarLyricsEnabled && controller?.playWhenReady == true)
-            getCurrentLyricIndex(false)?.let {
-                syncedLyrics?.text?.get(it)?.text
-            }
-        else null
-        if (lastSentHighlightedLyric != highlightedLyric) {
-            lastSentHighlightedLyric = highlightedLyric
-            handler.post {
-                endedWorkaroundPlayer?.let {
-                    // This will access the media notification controller's getters. But because
-                    // controller callback ordering is undefined and in practice our service
-                    // controller sometimes gets called first, this would cause us to access a stale
-                    // PlaybackInfo in the media notification controller which causes wrong decision
-                    // for startInForegroundRequired and that leads to crash.
-                    if (Looper.myLooper() != it.applicationLooper)
-                        throw UnsupportedOperationException("wrong looper for triggerNotificationUpdate")
-                    isManualNotificationUpdate = true
-                    triggerNotificationUpdate()
-                    isManualNotificationUpdate = false
-                }
-            }
-        }
-    }
-
-    fun getCurrentLyricIndex(withTranslation: Boolean): Int? {
-        val lines = syncedLyrics?.text?.mapIndexed { i, it -> i to it }?.filter {
-            it.second.start <= (controller?.currentPosition ?: 0).toULong()
-                    && (!it.second.isTranslated || withTranslation)
-        }
-        // return first non-blank line if there are are multiple lines, else the first blank like
-        val max = lines?.maxByOrNull { it.second.start }
-        if (max == null) {
-            return null
-        }
-        val maxLines =
-            lines.filter { it.second.start == max.second.start && it.second.text.isNotBlank() }
-        return maxLines.firstOrNull()?.first ?: max.first
     }
 
     override fun onForegroundServiceStartNotAllowedException() {

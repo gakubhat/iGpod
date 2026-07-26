@@ -209,7 +209,18 @@ class RadioManager(private val context: Context) {
             (0 until array.length()).map { array.getString(it) }
         } catch (_: Exception) { emptyList() }
 
-        val artworkUri = GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
+        // Resolve artwork from the DB-stored relative path (downloaded into the
+        // app-private artwork dir). Fall back to the embedded-art content URI
+        // only if no server artwork is available.
+        val artworkBaseDir = File(context.filesDir, "artwork")
+        val artworkFile = listOf(track.trackArtPath, track.artworkLocalPath)
+            .mapNotNull { rel -> rel?.takeIf { it.isNotEmpty() }?.let { File(artworkBaseDir, it) } }
+            .firstOrNull { it.exists() && it.length() > 0L }
+        val artworkUri = if (artworkFile != null) {
+            android.net.Uri.fromFile(artworkFile)
+        } else {
+            GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
+        }
 
         return MediaItem.Builder()
             .setMediaId("Db:$id")

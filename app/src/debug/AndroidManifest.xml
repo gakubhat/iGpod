@@ -6,7 +6,7 @@
 	<application tools:ignore="MissingApplicationIcon"
 		android:memtagMode="sync"
 		android:gwpAsanMode="always"
-		android:icon="@mipmap/ic_launcher_xmas"
+		android:icon="@mipmap/ic_launcher"
 		tools:targetApi="s"
 		tools:replace="android:icon">
 	</application>

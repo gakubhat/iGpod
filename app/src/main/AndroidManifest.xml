@@ -47,7 +47,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application
-        android:name=".logic.GramophoneApplication"
+        android:name=".logic.IGpodApplication"
         android:allowBackup="true"
         android:appCategory="audio"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -65,7 +65,7 @@
         tools:targetApi="upside_down_cake">
         <meta-data
             android:name="androidx.car.app.TintableAttributionIcon"
-            android:resource="@drawable/ic_gramophone_monochrome" />
+            android:resource="@drawable/ic_launcher_foreground" />
         <meta-data
             android:name="com.google.android.gms.car.application.theme"
             android:resource="@style/Theme.Gramophone"/>
@@ -207,30 +207,6 @@
             </intent-filter>
         </activity-alias>
 
-        <activity
-            android:name=".ui.AudioPreviewActivity"
-            android:theme="@style/Theme.AudioPreviewDialogTheme"
-            android:exported="true"
-            android:launchMode="singleTop"
-            android:taskAffinity="">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <!-- TODO add this <category android:name="android.intent.category.TYPED_OPENABLE" /> -->
-
-                <data android:scheme="content" />
-                <data android:scheme="file" />
-                <data android:mimeType="audio/*" />
-                <data android:mimeType="application/ogg"/>
-                <data android:mimeType="application/x-ogg"/>
-                <data android:mimeType="application/itunes"/>
-                <data android:mimeType="application/x-flac"/>
-                <data android:mimeType="vnd.android.cursor.dir/audio" />
-            </intent-filter>
-        </activity>
-
         <receiver
             android:name=".logic.utils.MediaButtonReceiver"
             android:exported="true">
@@ -268,60 +244,8 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <receiver android:name=".ui.LyricWidgetProvider"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data android:name="android.appwidget.provider"
-                android:resource="@xml/lyric_widget" />
-        </receiver>
-
-        <service android:name=".ui.LyricWidgetService"
-            android:permission="android.permission.BIND_REMOTEVIEWS" />
-
-        <activity
-            android:name=".ui.fragments.settings.PlayerSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.LyricSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.ReplayGainSettingsActivity"
-            android:exported="false" />
-
         <activity
             android:name=".ui.fragments.settings.AboutSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.AudioSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.AppearanceSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.BehaviorSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.MainSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.ExperimentalSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.ContributorsSettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.fragments.settings.BlacklistSettingsActivity"
             android:exported="false" />
 
         <activity

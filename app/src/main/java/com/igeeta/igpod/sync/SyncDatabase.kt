@@ -48,6 +48,7 @@ data class SyncedTrack(
     val playCount: Int = 0,
     val lastPlayed: String? = null,
     val artworkLocalPath: String? = null,
+    val trackArtPath: String = "",
     val localRating: Int = 0,
     val ratingDirty: Int = 0,
     val playlistServerId: Int? = null,
@@ -353,6 +354,7 @@ class SyncDatabase private constructor(context: Context) {
             put("play_count", track.playCount)
             put("last_played", track.lastPlayed)
             put("artwork_local_path", track.artworkLocalPath)
+            put("track_art_path", track.trackArtPath)
             put("local_rating", track.localRating)
             put("rating_dirty", track.ratingDirty)
             put("playlist_server_id", track.playlistServerId)
@@ -517,6 +519,7 @@ class SyncDatabase private constructor(context: Context) {
         playCount = getInt(getColumnIndexOrThrow("play_count")),
         lastPlayed = getString(getColumnIndexOrThrow("last_played")),
         artworkLocalPath = getString(getColumnIndexOrThrow("artwork_local_path")),
+        trackArtPath = getString(getColumnIndexOrThrow("track_art_path")),
         localRating = getInt(getColumnIndexOrThrow("local_rating")),
         ratingDirty = getInt(getColumnIndexOrThrow("rating_dirty")),
         playlistServerId = getInt(getColumnIndexOrThrow("playlist_server_id")),

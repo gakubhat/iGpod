@@ -35,7 +35,7 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
-import com.igeeta.igpod.logic.GramophoneApplication
+import com.igeeta.igpod.logic.IGpodApplication
 import com.igeeta.igpod.logic.GramophonePlaybackService
 import com.igeeta.igpod.logic.utils.LifecycleCallbackListImpl
 import java.util.concurrent.ExecutionException
@@ -43,7 +43,7 @@ import java.util.concurrent.ExecutionException
 class MediaControllerViewModel(application: Application) : AndroidViewModel(application),
     DefaultLifecycleObserver, MediaBrowser.Listener {
 
-    private val context: GramophoneApplication
+    private val context: IGpodApplication
         get() = getApplication()
     private val mainExecutor = ContextCompat.getMainExecutor(application)
     private var controllerLifecycle: LifecycleHost? = null

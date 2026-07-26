@@ -10,6 +10,7 @@ import uk.akane.libphonograph.items.Artist
 import uk.akane.libphonograph.items.Date
 import uk.akane.libphonograph.items.Genre
 import uk.akane.libphonograph.items.RaagasItem
+import uk.akane.libphonograph.items.EXTRA_FILE
 import uk.akane.libphonograph.reader.ReaderResult
 import uk.akane.libphonograph.utils.MiscUtils
 import java.io.File
@@ -18,7 +19,8 @@ object DbReader {
 
     fun readFromDatabase(
         syncDb: SyncDatabase,
-        rootPath: String
+        rootPath: String,
+        context: android.content.Context
     ): ReaderResult {
         val tracks = runBlocking { syncDb.getAllTracks() }
         if (tracks.isEmpty()) {
@@ -26,6 +28,7 @@ object DbReader {
         }
 
         val rootDir = File(rootPath)
+        val artworkBaseDir = File(context.filesDir, "artwork")
         val songs = mutableListOf<MediaItem>()
         val albumMap = hashMapOf<String, MiscUtils.AlbumImpl>()
         val artistMap = hashMapOf<String, Artist>()
@@ -39,12 +42,7 @@ object DbReader {
 
             val id = track.filePath.hashCode().toLong()
             val fileUri = Uri.fromFile(fullPath)
-            val artworkUri = track.artworkLocalPath?.let { artPath ->
-                val artFile = File(rootDir, artPath)
-                if (artFile.exists()) {
-                    GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
-                } else null
-            } ?: GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
+            val artworkUri = resolveArtworkUri(track, artworkBaseDir, id, fullPath)
 
             val artists = parseJsonArray(track.artists)
             val primaryArtist = artists.firstOrNull()
@@ -64,9 +62,9 @@ object DbReader {
                         .setArtworkUri(artworkUri)
                         .setGenre(track.genre.ifEmpty { null })
                         .setReleaseYear(null)
-                        .setUserRating(androidx.media3.common.HeartRating(false))
+                        .setUserRating(androidx.media3.common.HeartRating(track.rating >= 3))
                         .setExtras(android.os.Bundle().apply {
-                            putString("EXTRA_FILE", fullPath.absolutePath)
+                            putString(EXTRA_FILE, fullPath.absolutePath)
                         })
                         .build()
                 )
@@ -142,6 +140,34 @@ object DbReader {
             folders = setOf(),
             foldersForWhitelist = setOf()
         )
+    }
+
+    /**
+     * Resolve album art for a track.
+     *
+     * Artwork files are stored on disk under the sync root, with their relative
+     * paths coming from the synced database ([SyncedTrack.trackArtPath] for
+     * track-specific art, [SyncedTrack.artworkLocalPath] for album art). We prefer
+     * the dedicated track art, then fall back to album art, both sourced from the
+     * DB. If neither exists (e.g. MP3 has embedded art), we fall back to the
+     * content provider that extracts embedded art from the audio file.
+     */
+    private fun resolveArtworkUri(
+        track: SyncedTrack,
+        artworkBaseDir: File,
+        id: Long,
+        fullPath: File,
+    ): Uri {
+        val candidates = listOf(track.trackArtPath, track.artworkLocalPath)
+            .mapNotNull { rel -> rel?.takeIf { it.isNotEmpty() }?.let { File(artworkBaseDir, it) } }
+            .filter { it.exists() && it.length() > 0 }
+        val artFile = candidates.firstOrNull()
+        return if (artFile != null) {
+            Uri.fromFile(artFile)
+        } else {
+            // Fallback: embedded art inside the MP3 file, served via content provider.
+            GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
+        }
     }
 
     private fun parseJsonArray(json: String): List<String> {

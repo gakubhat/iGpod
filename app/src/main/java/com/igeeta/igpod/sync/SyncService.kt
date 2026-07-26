@@ -10,6 +10,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.igeeta.igpod.logic.IGpodApplication
 import com.igeeta.igpod.R
 import com.igeeta.igpod.ui.SyncActivity
 import kotlinx.coroutines.CoroutineScope
@@ -121,6 +122,13 @@ class SyncService : Service() {
             if (success) {
                 updateNotification("Sync complete!", 100)
                 broadcastProgress("Sync complete!", 100, false)
+                // iGeeta: re-read the library from the synced database so new
+                // tracks/playlists show up without restarting the app.
+                try {
+                    (application as IGpodApplication).reader.refresh()
+                } catch (e: Exception) {
+                    android.util.Log.w("SyncService", "library refresh after sync failed", e)
+                }
             } else {
                 broadcastProgress("Sync failed", 0, false)
             }

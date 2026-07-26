@@ -17,8 +17,7 @@
 
 package com.igeeta.igpod.ui.adapters
 
-import android.annotation.SuppressLint
-import android.content.SharedPreferences
+import android.content.Context
 import android.net.Uri
 import android.view.View
 import android.widget.Toast
@@ -90,7 +89,7 @@ class SongAdapter(
     allowDiffUtils = allowDiffUtils,
     hasMenu = isSubFragment != R.id.songs,
     fallbackContext = fallbackContext
-), SharedPreferences.OnSharedPreferenceChangeListener {
+) {
 
     init {
         lateInit()
@@ -100,7 +99,6 @@ class SongAdapter(
 
     fun getActivity() = mainActivity
 
-    private var showFileNames = false
     private var idToPosMap: HashMap<String, List<Int?>>? = null
     private var currentMediaItem: String? = null
         set(value) {
@@ -171,24 +169,10 @@ class SongAdapter(
 
     override fun onAttachedToRecyclerView(recyclerView: MyRecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
-        if (folder) {
-            prefs.registerOnSharedPreferenceChangeListener(this)
-            showFileNames = prefs.getBooleanStrict("show_file_names", true)
-        }
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: MyRecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
-        if (folder)
-            prefs.unregisterOnSharedPreferenceChangeListener(this)
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    override fun onSharedPreferenceChanged(prefs: SharedPreferences?, key: String?) {
-        if ((key == null || key == "show_file_names") && folder) {
-            showFileNames = this.prefs.getBooleanStrict("show_file_names", true)
-            notifyDataSetChanged()
-        }
     }
 
     fun getPlayingSong(): Int? {
@@ -206,11 +190,12 @@ class SongAdapter(
     }
 
     override fun virtualTitleOf(item: MediaItem): String {
-        return "null"
+        // iGpod: always show the song title from the database (DbReader sets it).
+        return item.mediaMetadata.title?.toString().orEmpty()
     }
 
     override fun titleOf(item: MediaItem): String? {
-        return if (showFileNames) item.getFile()?.name else super.titleOf(item)
+        return item.mediaMetadata.title?.toString()
     }
 
     override fun onClick(item: MediaItem, position: Int) {
@@ -348,23 +333,27 @@ class SongAdapter(
 
     private fun showRatingDialog(item: MediaItem) {
         val filePath = item.getFile()?.absolutePath ?: return
-        val currentRating = 0 // Will be loaded from DB
+
+        // Heart space is binary (favorite = rating >= 3). The star dialog lets the
+        // user express 1-5, but we collapse any >=3 choice to a favorite (3) and any
+        // <3 choice to not-favorite (0), so the two UIs stay consistent.
+        val ratingToHeart = { r: Int -> if (r >= 3) 3 else 0 }
 
         // Create a simple star rating dialog
         val ratingValues = arrayOf("0 - No rating", "1 - Poor", "2 - Fair", "3 - Good", "4 - Very Good", "5 - Excellent")
-        val checkedItem = currentRating
 
         CoroutineScope(Dispatchers.IO).launch {
             val db = com.igeeta.igpod.sync.SyncDatabase.getInstance(context)
             val track = db.getTrackByPath(filePath)
             val savedRating = track?.localRating ?: 0
+            val checkedItem = ratingToHeart(savedRating)
 
             withContext(Dispatchers.Main) {
                 MaterialAlertDialogBuilder(context)
                     .setTitle(R.string.rate_track)
-                    .setSingleChoiceItems(ratingValues, savedRating) { dialog, which ->
+                    .setSingleChoiceItems(ratingValues, checkedItem) { dialog, which ->
                         CoroutineScope(Dispatchers.IO).launch {
-                            db.setLocalRating(filePath, which)
+                            db.setLocalRating(filePath, ratingToHeart(which))
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(context, R.string.rating_saved, Toast.LENGTH_SHORT).show()
                                 dialog.dismiss()

@@ -247,6 +247,10 @@ class RadioFragment : BaseFragment(false) {
     }
 
     private var playerListener: androidx.media3.common.Player.Listener? = null
+    // True when a media-item transition was initiated by the radio itself
+    // (start or auto-advance). Used to distinguish radio-driven transitions
+    // from the user starting a library song, which must stop the radio.
+    private var expectingRadioTransition = false
 
     private fun startRadio() {
         val controller = (requireActivity() as MainActivity).getPlayer()
@@ -260,9 +264,15 @@ class RadioFragment : BaseFragment(false) {
         // Add listener for track transitions
         playerListener = object : androidx.media3.common.Player.Listener {
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
-                if (isRadioPlaying) {
-                    playNextTrack()
+                if (!isRadioPlaying) return
+                if (expectingRadioTransition) {
+                    // This transition was initiated by the radio itself; do not stop.
+                    expectingRadioTransition = false
+                    return
                 }
+                // A transition we did not initiate (e.g. user started a library song)
+                // means the radio should stop.
+                stopRadio()
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -285,6 +295,7 @@ class RadioFragment : BaseFragment(false) {
                 }
 
                 val tracks = if (nextTrack != null) listOf(track, nextTrack) else listOf(track)
+                expectingRadioTransition = true
                 controller.setMediaItems(tracks)
                 controller.prepare()
                 controller.play()
@@ -311,6 +322,7 @@ class RadioFragment : BaseFragment(false) {
                     controller.removeMediaItem(currentIndex + 1)
                 }
                 controller.addMediaItem(currentIndex + 1, track)
+                expectingRadioTransition = true
                 controller.seekToNext()
                 updateNowPlaying()
             }

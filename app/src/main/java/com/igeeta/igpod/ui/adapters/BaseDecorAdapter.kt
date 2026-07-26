@@ -24,7 +24,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.edit
-import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
@@ -63,9 +62,6 @@ open class BaseDecorAdapter<T : AdapterFragment.BaseInterface<*>>(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val count = adapter.itemCountForDecor
         holder.playAll.visibility =
-            if (adapter is SongAdapter && adapter.isSubFragment != R.id.songs ||
-                adapter is AlbumAdapter) View.VISIBLE else View.GONE
-        holder.shuffleAll.visibility =
             if (adapter is SongAdapter && adapter.isSubFragment != R.id.songs ||
                 adapter is AlbumAdapter) View.VISIBLE else View.GONE
         holder.counter.text = context.resources.getQuantityString(pluralStr, count, count)
@@ -200,40 +196,6 @@ open class BaseDecorAdapter<T : AdapterFragment.BaseInterface<*>>(
                 }
             }
         }
-        holder.shuffleAll.setOnClickListener {
-            ShortcutManagerCompat.reportShortcutUsed(context, "shuffle_all")
-            if (adapter is SongAdapter) {
-                val songList = adapter.getSongList()
-                val controller = adapter.getActivity().getPlayer()
-                controller?.apply {
-                    setMediaItemsWithTitle(
-                        songList,
-                        title = runBlocking { adapter.queueTitle!!.first() },
-                        shuffleEnabled = true,
-                    )
-                    if (songList.isNotEmpty()) {
-                        prepare()
-                        play()
-                    }
-                }
-            } else if (adapter is AlbumAdapter) {
-                val list = adapter.getAlbumList()
-                val controller = adapter.getActivity().getPlayer()
-                controller?.apply {
-                    list.takeIf { it.isNotEmpty() }?.also { albums ->
-                        setMediaItemsWithTitle(
-                            albums.shuffled().flatMap { it.songList },
-                            title = context.getString(R.string.shuffled,
-                                    runBlocking { adapter.queueTitle.first() }),
-                            shuffleEnabled = false,
-                            repeatMode = REPEAT_MODE_OFF,
-                        )
-                        prepare()
-                        play()
-                    } ?: setMediaItems(listOf())
-                }
-            }
-        }
         holder.jumpUp.visibility = if (jumpUpPos != null) View.VISIBLE else View.GONE
         holder.jumpUp.setOnClickListener {
             scrollToViewPosition(jumpUpPos!!())
@@ -254,7 +216,6 @@ open class BaseDecorAdapter<T : AdapterFragment.BaseInterface<*>>(
     override fun onViewRecycled(holder: ViewHolder) {
         holder.sortButton.setOnClickListener(null)
         holder.playAll.setOnClickListener(null)
-        holder.shuffleAll.setOnClickListener(null)
         holder.jumpUp.setOnClickListener(null)
         holder.jumpDown.setOnClickListener(null)
         super.onViewRecycled(holder)
@@ -308,7 +269,6 @@ open class BaseDecorAdapter<T : AdapterFragment.BaseInterface<*>>(
         val sortButton: MaterialButton = view.findViewById(R.id.sort)
         val createPlaylist: MaterialButton = view.findViewById(R.id.create_playlist)
         val playAll: MaterialButton = view.findViewById(R.id.play_all)
-        val shuffleAll: MaterialButton = view.findViewById(R.id.shuffle_all)
         val jumpUp: MaterialButton = view.findViewById(R.id.jumpUp)
         val jumpDown: MaterialButton = view.findViewById(R.id.jumpDown)
         val counter: TextView = view.findViewById(R.id.song_counter)

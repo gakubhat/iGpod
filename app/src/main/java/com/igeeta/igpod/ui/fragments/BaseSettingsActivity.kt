@@ -34,7 +34,7 @@ abstract class BaseSettingsActivity(
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.fragment_top_settings)
+        setContentView(R.layout.fragment_settings_base)
         val topAppBar = findViewById<MaterialToolbar>(R.id.topAppBar)
         val collapsingToolbar = findViewById<CollapsingToolbarLayout>(R.id.collapsingtoolbar)
 

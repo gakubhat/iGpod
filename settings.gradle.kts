@@ -35,7 +35,5 @@ includeBuild(file("media3").toPath().toRealPath().toAbsolutePath().toString()) {
 include(":misc:audiofxstub")
 include(":misc:audiofxstub2")
 include(":misc:audiofxfwd")
-include(":misc:alacdecoder")
-include(":hificore")
 include(":app")
 include(":baselineprofile")

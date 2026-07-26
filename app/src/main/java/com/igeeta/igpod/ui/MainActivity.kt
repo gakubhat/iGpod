@@ -51,6 +51,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.IntentCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.net.toUri
+import androidx.core.net.toFile
 import androidx.core.os.BundleCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.Fragment
@@ -117,6 +118,8 @@ class MainActivity : BaseActivity() {
     // Import our viewModels.
     val controllerViewModel: MediaControllerViewModel by viewModels()
     val radioManager by lazy { com.igeeta.igpod.logic.RadioManager(this) }
+    // When the library is empty on launch, the ViewPager selects the iGeeta Sync tab.
+    var openSyncTabOnLaunch = false
     val startingActivity =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
 
@@ -210,13 +213,11 @@ class MainActivity : BaseActivity() {
             }
         }, false)
 
-        // Check if database is empty - redirect to sync page
+        // Check if database is empty - land on the iGeeta Sync tab so the user can sync.
         val syncDb = com.igeeta.igpod.sync.SyncDatabase.getInstance(this)
         val dbTrackCount = kotlinx.coroutines.runBlocking { syncDb.getTrackCount() }
         if (dbTrackCount == 0) {
-            startActivity(Intent(this, SyncActivity::class.java))
-            finish()
-            return
+            openSyncTabOnLaunch = true
         }
 
         // Set content Views.
@@ -386,6 +387,13 @@ class MainActivity : BaseActivity() {
             val songs = BundleCompat.getParcelableArrayList(data, "Songs",
                 Entry::class.java)!!
             val favorite = data.getBoolean("Favorite")
+            // Persist the heart as a binary rating (3 = favorite, 0 = not) so it
+            // survives re-sync and is pushed to the server on the next sync.
+            val db = com.igeeta.igpod.sync.SyncDatabase.getInstance(this)
+            for (song in songs) {
+                val path = song.locations.firstOrNull()?.toFile()?.absolutePath ?: continue
+                db.setLocalRating(path, if (favorite) 3 else 0)
+            }
             try {
                 val uri = uriIn ?: ItemManipulator.createPlaylist(this,
                     ItemManipulator.getDefaultPlaylistFile(ItemManipulator.FAVORITES))

@@ -77,8 +77,6 @@ import com.google.android.material.appbar.CollapsingToolbarLayout
 import kotlinx.coroutines.flow.MutableSharedFlow
 import com.igeeta.igpod.BuildConfig
 import com.igeeta.igpod.R
-import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_GET_AUDIO_FORMAT
-import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_GET_LYRICS
 import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_QB_AGE
 import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_QB_DEL
 import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_QB_GET_INACTIVE_LIST
@@ -91,14 +89,8 @@ import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_QUERY_
 import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_SET_MEDIA_ITEMS_ATOMIC
 import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_SET_MEDIA_ITEMS_SEAMLESSLY
 import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.SERVICE_SET_TIMER
-import com.igeeta.igpod.logic.utils.AfFormatInfo
-import com.igeeta.igpod.logic.utils.AudioFormatDetector
-import com.igeeta.igpod.logic.utils.AudioTrackInfo
-import com.igeeta.igpod.logic.utils.BtCodecInfo
 import com.igeeta.igpod.logic.utils.CalculationUtils
 import com.igeeta.igpod.logic.utils.MediaItemList
-import com.igeeta.igpod.logic.utils.ReplayGainUtil
-import com.igeeta.igpod.logic.utils.SemanticLyrics
 import com.igeeta.igpod.ui.MainActivity
 import org.jetbrains.annotations.Contract
 import org.xmlpull.v1.XmlPullParser
@@ -351,38 +343,6 @@ inline fun <reified T> MutableList<T>.replaceAllSupport(skipFirst: Int = 0, oper
         li.set(operator(li.next()))
     }
 }
-
-@Suppress("UNCHECKED_CAST")
-fun MediaController.getLyrics(): SemanticLyrics? =
-    sendCustomCommand(
-        SessionCommand(SERVICE_GET_LYRICS, Bundle.EMPTY),
-        Bundle.EMPTY
-    ).get().extras.let {
-        BundleCompat.getParcelable(it, "lyrics", SemanticLyrics::class.java)
-    }
-
-fun MediaController.getAudioFormat(): AudioFormatDetector.AudioFormats =
-    sendCustomCommand(
-        SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-        Bundle.EMPTY
-    ).get().extras.let {
-        AudioFormatDetector.AudioFormats(
-            BundleCompat.getParcelableArrayList(
-                it, "file_format",
-                Bundle::class.java
-            )?.let { bundles ->
-                bundles.map { bundle ->
-                    bundle.getInt("type", C.TRACK_TYPE_UNKNOWN) to
-                            (Format.fromBundle(bundle.getBundle("format")!!)
-                                    to ReplayGainUtil.ReplayGainInfo.fromBundle(bundle.getBundle("rg")!!))
-                }
-            },
-            it.getBundle("sink_format")?.let { bundle -> Format.fromBundle(bundle) },
-            BundleCompat.getParcelable(it, "track_format", AudioTrackInfo::class.java),
-            BundleCompat.getParcelable(it, "hal_format", AfFormatInfo::class.java),
-            BundleCompat.getParcelable(it, "bt", BtCodecInfo::class.java)
-        )
-    }
 
 fun MediaController.getInactiveQueues(): List<MultiQueueObject> =
     sendCustomCommand(
@@ -657,7 +617,7 @@ fun Context.supportsWideScreen() : Boolean {
 }
 
 val Context.gramophoneApplication
-    get() = this.applicationContext as GramophoneApplication
+    get() = this.applicationContext as IGpodApplication
 
 /*
 fun AppWidgetManager.createWidgetInSizes(appWidgetId: Int, creator: (SizeF?) -> RemoteViews): RemoteViews {

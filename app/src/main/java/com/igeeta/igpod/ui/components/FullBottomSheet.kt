@@ -23,49 +23,38 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
-import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
-import android.os.Bundle
-import android.os.Parcelable
 import android.text.format.DateFormat
 import android.util.AttributeSet
-import android.view.AbsSavedState
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewPropertyAnimator
 import android.view.WindowInsets
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
-import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ListView
 import android.widget.SeekBar
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.widget.TooltipCompat
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.edit
 import androidx.core.graphics.Insets
 import androidx.core.graphics.TypefaceCompat
-import androidx.core.os.BundleCompat
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isInvisible
-import androidx.core.view.isVisible
 import androidx.core.view.postOnAnimationDelayed
 import androidx.core.widget.NestedScrollView
-import androidx.core.widget.TextViewCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.ViewModel
 import androidx.media3.common.C
@@ -107,27 +96,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.igeeta.igpod.R
 import com.igeeta.igpod.logic.GramophonePlaybackService
-import com.igeeta.igpod.logic.clone
 import com.igeeta.igpod.logic.dpToPx
-import com.igeeta.igpod.logic.fadInAnimation
-import com.igeeta.igpod.logic.fadOutAnimation
-import com.igeeta.igpod.logic.getAudioFormat
 import com.igeeta.igpod.logic.getBooleanStrict
 import com.igeeta.igpod.logic.getIntStrict
-import com.igeeta.igpod.logic.getLyrics
 import com.igeeta.igpod.logic.getTimer
 import com.igeeta.igpod.logic.playOrPause
 import com.igeeta.igpod.logic.setTextAnimation
 import com.igeeta.igpod.logic.setTimer
 import com.igeeta.igpod.logic.startAnimation
 import com.igeeta.igpod.logic.updateMargin
-import com.igeeta.igpod.logic.utils.AudioFormatDetector
-import com.igeeta.igpod.logic.utils.AudioFormatDetector.AudioFormatInfo
-import com.igeeta.igpod.logic.utils.AudioFormatDetector.AudioQuality
-import com.igeeta.igpod.logic.utils.AudioFormatDetector.SpatialFormat
 import com.igeeta.igpod.logic.utils.CalculationUtils
 import com.igeeta.igpod.logic.utils.ColorUtils
-import com.igeeta.igpod.logic.utils.Flags
 import com.igeeta.igpod.ui.MainActivity
 import com.igeeta.igpod.ui.fragments.ArtistSubFragment
 import com.igeeta.igpod.ui.fragments.DetailDialogFragment
@@ -135,8 +114,6 @@ import com.igeeta.igpod.ui.fragments.GeneralSubFragment
 import uk.akane.libphonograph.items.albumId
 import uk.akane.libphonograph.items.artistId
 import uk.akane.libphonograph.manipulator.PlaylistSerializer.Entry
-import java.text.NumberFormat
-import java.text.ParseException
 import kotlin.math.max
 import kotlin.math.min
 
@@ -163,16 +140,13 @@ class FullBottomSheet
     private var isUserTracking = false
     private var runnableRunning = false
     private var firstTime = false
-    private var enableQualityInfo = false
 
     private val prefs = PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
-    private var currentFormat: AudioFormatDetector.AudioFormats? = null
 
     companion object {
         const val SLIDER_UPDATE_INTERVAL: Long = 100
         const val BACKGROUND_COLOR_TRANSITION_SEC: Long = 300
         const val FOREGROUND_COLOR_TRANSITION_SEC: Long = 150
-        const val LYRIC_FADE_TRANSITION_SEC: Long = 125
         private const val TAG = "FullBottomSheet"
     }
 
@@ -198,7 +172,6 @@ class FullBottomSheet
                 if (mediaId != null) {
                     if (seekBar != null) {
                         instance?.seekTo((seekBar.progress.toLong()))
-                        bottomSheetFullLyricView.updateLyricPositionFromPlaybackPos()
                     }
                 }
                 isUserTracking = false
@@ -214,35 +187,15 @@ class FullBottomSheet
                 val mediaId = instance?.currentMediaItem
                 if (mediaId != null) {
                     instance?.seekTo((slider.value.toLong()))
-                    bottomSheetFullLyricView.updateLyricPositionFromPlaybackPos()
                 }
                 isUserTracking = false
-            }
-        }
-    private val formatUpdateRunnable = Runnable {
-        updateQualityIndicators(
-            if (enableQualityInfo)
-                AudioFormatDetector.detectAudioFormat(currentFormat) else null
-        )
-    }
-    var visibilityDueToLyrics: Int = VISIBLE
-        set(value) {
-            if (field != value) {
-                field = value
-                if (visibilityDueToBottomSheet == VISIBLE) {
-                    visibility = value
-                }
             }
         }
     var visibilityDueToBottomSheet: Int = GONE
         set(value) {
             if (field != value) {
                 field = value
-                if (value == VISIBLE) {
-                    visibility = visibilityDueToLyrics
-                } else {
-                    visibility = value
-                }
+                visibility = value
             }
         }
     private val bottomSheetFullCover: TransformableImageView
@@ -253,19 +206,15 @@ class FullBottomSheet
     private val bottomSheetFullPreviousButton: MaterialButton
     private val bottomSheetFullDuration: TextView
     private val bottomSheetFullPosition: TextView
-    private var bottomSheetFullQualityDetails: TextView
     private val bottomSheetFullSlideUpButton: MaterialButton
     private val bottomSheetShuffleButton: MaterialButton
     private val bottomSheetLoopButton: MaterialButton
     private val bottomSheetPlaylistButton: MaterialButton
     private val bottomSheetTimerButton: MaterialButton
-    private val bottomSheetPlaybackSpeedButton: MaterialButton
     private val bottomSheetFavoriteButton: MaterialButton
-    val bottomSheetLyricButton: MaterialButton
     private val bottomSheetFullSeekBar: SeekBar
     private val bottomSheetFullSlider: Slider
     private val bottomSheetFullCoverFrame: MaterialCardView
-    val bottomSheetFullLyricView: LyricsView by lazy { (parent as ViewGroup).findViewById(R.id.lyric_frame)!! }
     private val progressDrawable: SquigglyProgress
     private var pqs: PlaylistQueueSheet? = null
 
@@ -286,32 +235,13 @@ class FullBottomSheet
         bottomSheetShuffleButton = findViewById(R.id.sheet_random)
         bottomSheetLoopButton = findViewById(R.id.sheet_loop)
         bottomSheetTimerButton = findViewById(R.id.timer)
-        bottomSheetPlaybackSpeedButton = findViewById(R.id.playback_speed)
         bottomSheetFavoriteButton = findViewById(R.id.favor)
         bottomSheetPlaylistButton = findViewById(R.id.playlist)
-        bottomSheetLyricButton = findViewById(R.id.lyrics)
-        bottomSheetFullQualityDetails = findViewById(R.id.quality_details)
         refreshSettings(null)
         prefs.registerOnSharedPreferenceChangeListener(this)
         activity.controllerViewModel.customCommandListeners.addCallback(activity.lifecycle) { _, command, _ ->
             when (command.customAction) {
                 GramophonePlaybackService.SERVICE_TIMER_CHANGED -> updateTimer()
-
-                GramophonePlaybackService.SERVICE_GET_LYRICS -> {
-                    val parsedLyrics = instance?.getLyrics()
-                    bottomSheetFullLyricView.updateLyrics(parsedLyrics)
-                }
-
-                GramophonePlaybackService.SERVICE_GET_AUDIO_FORMAT -> {
-                    val format = instance?.getAudioFormat()
-                    this.currentFormat = format
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
-                        !handler.hasCallbacks(formatUpdateRunnable)
-                    ) {
-                        // TODO: is 300ms long enough wait for stuff like bitrate? 100ms isn't.
-                        handler.postDelayed(formatUpdateRunnable, 300)
-                    }
-                }
 
                 else -> {
                     return@addCallback Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
@@ -367,18 +297,6 @@ class FullBottomSheet
             }
         }
 
-        if (Flags.FORMAT_INFO_DIALOG) {
-            bottomSheetFullQualityDetails.setOnClickListener {
-                MaterialAlertDialogBuilder(wrappedContext ?: context)
-                    .setTitle(R.string.audio_signal_chain)
-                    .setMessage(
-                        currentFormat?.prettyToString(context)
-                            ?: context.getString(R.string.audio_not_initialized)
-                    )
-                    .setPositiveButton(android.R.string.ok) { _, _ -> }
-                    .show()
-            }
-        }
 
         bottomSheetFullSubtitle.setOnClickListener {
             minimize?.invoke()
@@ -417,67 +335,34 @@ class FullBottomSheet
                     }
                 }
             } else {
+                val minutes = listOf(0, 15, 30, 45, 60, 90)
+                val items = minutes.map {
+                    if (it > 0)
+                        context.resources.getQuantityString(R.plurals.minutes, it, it)
+                    else
+                        context.resources.getString(R.string.timer_end_of_this_song)
+                }
                 val dialog = MaterialAlertDialogBuilder(wrappedContext ?: context)
                     .setTitle(R.string.timer)
                     .setView(R.layout.dialog_sleep_timer)
                     .setNegativeButton(android.R.string.cancel) { _, _ -> }
-                    .show()
-                val lv = dialog.findViewById<ListView>(R.id.listView)!!
+                    .create()
+                val spinner = dialog.findViewById<Spinner>(R.id.spinner)!!
                 val checkbox = dialog.findViewById<CheckBox>(R.id.checkBox)!!
                 checkbox.isChecked = prefs.getBooleanStrict("lastTimerEos", false)
-                val minutes = listOf(0, 1, 3, 5, 10, 15, 20, 30, 45, 60, 90)
-                val items = minutes.map {
-                    if (it > 0)
-                        context.resources.getQuantityString(
-                            R.plurals.minutes, it,
-                            it
-                        )
-                    else
-                        context.resources.getString(R.string.timer_end_of_this_song)
-                } + context.resources.getString(R.string.other)
-                lv.adapter = ArrayAdapter(
-                    context, android.R.layout.simple_list_item_1,
-                    items
-                )
-                lv.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
-                    dialog.dismiss()
-                    if (position == minutes.size) {
-                        lateinit var et: EditText
-                        lateinit var cb: CheckBox
-                        // TODO find out why wrapped context does not work
-                        val dialog2 = MaterialAlertDialogBuilder(context)
-                            .setTitle(R.string.timer)
-                            .setView(R.layout.dialog_sleep_timer_custom)
-                            .setPositiveButton(android.R.string.ok) { _, _ ->
-                                try {
-                                    instance?.setTimer((NumberFormat.getInstance().parse(
-                                        et.editableText.toString())!!.toFloat() * 60f *
-                                            1000f).toInt(), cb.isChecked)
-                                } catch (_: ParseException) {
-                                    // race condition with button enable
-                                }
-                            }
-                            .setNegativeButton(android.R.string.cancel) { _, _ -> }
-                            .show()
-                        val b = dialog2.getButton(DialogInterface.BUTTON_POSITIVE)
-                        b.isEnabled = false
-                        et = dialog2.findViewById(R.id.editText)!!
-                        et.addTextChangedListener {
-                            b.isEnabled = try {
-                                NumberFormat.getInstance().parse(it.toString())!!.toFloat()
-                                true
-                            } catch (_: ParseException) {
-                                false
-                            }
-                        }
-                        cb = dialog2.findViewById(R.id.checkBox)!!
-                        cb.isChecked = checkbox.isChecked
-                    } else {
-                        val duration = minutes[position] * 60 * 1000
-                        val eos = duration == 0 || checkbox.isChecked
-                        instance?.setTimer(duration, eos)
-                    }
+                spinner.adapter = ArrayAdapter(
+                    context, android.R.layout.simple_spinner_item, items
+                ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+                spinner.setSelection(0)
+                dialog.setButton(AlertDialog.BUTTON_POSITIVE,
+                    context.getText(android.R.string.ok)) { _, _ ->
+                    val position = spinner.selectedItemPosition
+                    val duration = minutes[position] * 60 * 1000
+                    val eos = duration == 0 || checkbox.isChecked
+                    prefs.edit().putBoolean("lastTimerEos", checkbox.isChecked).apply()
+                    instance?.setTimer(duration, eos)
                 }
+                dialog.show()
             }
         }
 
@@ -489,15 +374,6 @@ class FullBottomSheet
                 Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
                 else -> throw IllegalStateException()
             }
-        }
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            bottomSheetPlaybackSpeedButton.visibility = GONE
-        }
-        bottomSheetPlaybackSpeedButton.setOnClickListener {
-            ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
-            if (instance != null)
-                showPlaybackSpeedDialog()
         }
 
         bottomSheetFavoriteButton.addOnCheckedChangeListener(this)
@@ -551,11 +427,6 @@ class FullBottomSheet
             minimize?.invoke()
         }
 
-        bottomSheetLyricButton.setOnClickListener {
-            ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
-            bottomSheetFullLyricView.fadInAnimation(LYRIC_FADE_TRANSITION_SEC)
-        }
-
         bottomSheetShuffleButton.setOnClickListener {
             ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
         }
@@ -599,54 +470,6 @@ class FullBottomSheet
         }
     }
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        val colorPrimary =
-            MaterialColors.getColor(
-                context,
-                androidx.appcompat.R.attr.colorPrimary,
-                -1
-            )
-        val colorSurface = MaterialColors.getColor(
-            context,
-            com.google.android.material.R.attr.colorSurface,
-            -1
-        )
-        val backgroundProcessedColor = ColorUtils.getColor(
-            colorSurface,
-            ColorUtils.ColorType.COLOR_BACKGROUND_ELEVATED,
-            context
-        )
-        bottomSheetFullLyricView.updateTextColor(
-            androidx.core.graphics.ColorUtils.compositeColors(
-                androidx.core.graphics.ColorUtils.setAlphaComponent(colorPrimary, 77),
-                backgroundProcessedColor
-            ),
-            colorPrimary,
-            androidx.core.graphics.ColorUtils.compositeColors(
-                androidx.core.graphics.ColorUtils.setAlphaComponent(colorPrimary, 200),
-                backgroundProcessedColor
-            ),
-        )
-    }
-
-    override fun onSaveInstanceState(): Parcelable {
-        return Bundle().apply {
-            putParcelable("Super", super.onSaveInstanceState())
-            putBoolean("Lyrics", bottomSheetFullLyricView.isVisible)
-        }
-    }
-
-    override fun onRestoreInstanceState(state: Parcelable?) {
-        state as Bundle?
-        if (state != null) {
-            bottomSheetFullLyricView.isVisible = state.getBoolean("Lyrics")
-            super.onRestoreInstanceState(BundleCompat.getParcelable(state, "Super", AbsSavedState::class.java))
-        } else {
-            super.onRestoreInstanceState(null)
-        }
-    }
-
     private fun updateTimer() {
         val t = instance?.getTimer()
         bottomSheetTimerButton.isChecked = t?.first != null || t?.second == true
@@ -661,205 +484,42 @@ class FullBottomSheet
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        if (key == "color_accuracy" || key == "content_based_color") {
-            if (DynamicColors.isDynamicColorAvailable() &&
-                prefs.getBooleanStrict("content_based_color", true)
-            ) {
+        refreshSettings(key)
+    }
+
+    private fun refreshSettings(key: String?) {
+        // iGpod: player UI appearance is frozen; no user customization.
+        if (key == null || key == "default_progress_bar") {
+            // default_progress_bar = false -> use the classic seek bar
+            bottomSheetFullSlider.visibility = GONE
+            bottomSheetFullSeekBar.visibility = VISIBLE
+        }
+        if (key == null || key == "centered_title") {
+            // centered_title = false -> left aligned
+            bottomSheetFullTitle.gravity = Gravity.CENTER_HORIZONTAL or Gravity.START
+            bottomSheetFullSubtitle.gravity = Gravity.CENTER_HORIZONTAL or Gravity.START
+        }
+        if (key == null || key == "bold_title") {
+            // bold_title = true
+            bottomSheetFullTitle.typeface = TypefaceCompat.create(context, null, 600, false)
+        }
+        if (key == null || key == "album_round_corner") {
+            bottomSheetFullCoverFrame.radius =
+                context.resources.getInteger(R.integer.round_corner_radius)
+                    .dpToPx(context).toFloat()
+        }
+        if (key == null || key == "cookie_cover") {
+            // cookie_cover = false
+            bottomSheetFullCover.setClip(false)
+        }
+        if (key == null || key == "color_accuracy" || key == "content_based_color") {
+            // content_based_color = true (default) -> use dynamic color when available
+            if (DynamicColors.isDynamicColorAvailable()) {
                 addColorScheme()
             } else {
                 removeColorScheme()
             }
-        } else {
-            refreshSettings(key)
         }
-    }
-
-    private fun refreshSettings(key: String?) {
-        if (key == null || key == "default_progress_bar") {
-            if (prefs.getBooleanStrict("default_progress_bar", false)) {
-                bottomSheetFullSlider.visibility = VISIBLE
-                bottomSheetFullSeekBar.visibility = GONE
-            } else {
-                bottomSheetFullSlider.visibility = GONE
-                bottomSheetFullSeekBar.visibility = VISIBLE
-            }
-        }
-        if (key == null || key == "audio_quality_info") {
-            enableQualityInfo = prefs.getBooleanStrict("audio_quality_info", false)
-            updateQualityIndicators(
-                if (enableQualityInfo)
-                    AudioFormatDetector.detectAudioFormat(currentFormat) else null
-            )
-        }
-        if (key == null || key == "centered_title") {
-            if (prefs.getBooleanStrict("centered_title", false)) {
-                bottomSheetFullTitle.gravity = Gravity.CENTER
-                bottomSheetFullSubtitle.gravity = Gravity.CENTER
-            } else {
-                bottomSheetFullTitle.gravity = Gravity.CENTER_HORIZONTAL or Gravity.START
-                bottomSheetFullSubtitle.gravity = Gravity.CENTER_HORIZONTAL or Gravity.START
-            }
-        }
-        if (key == null || key == "bold_title") {
-            if (prefs.getBooleanStrict("bold_title", true)) {
-                bottomSheetFullTitle.typeface = TypefaceCompat.create(context, null, 600, false)
-            } else {
-                bottomSheetFullTitle.typeface = TypefaceCompat.create(context, null, 400, false)
-            }
-        }
-        if (key == null || key == "album_round_corner") {
-            bottomSheetFullCoverFrame.radius = prefs.getIntStrict(
-                "album_round_corner",
-                context.resources.getInteger(R.integer.round_corner_radius)
-            ).dpToPx(context).toFloat()
-        }
-        if (key == null || key == "cookie_cover") {
-            bottomSheetFullCover.setClip(prefs.getBooleanStrict("cookie_cover", false))
-        }
-    }
-
-    private fun showPlaybackSpeedDialog() {
-        val context = wrappedContext ?: context
-        val initialPlaybackParameters = instance!!.playbackParameters
-        val wantsToBeLocked = prefs.getBoolean("playback_tempo_pitch_locked", true)
-        val isLocked =
-            initialPlaybackParameters.pitch == initialPlaybackParameters.speed && wantsToBeLocked
-
-        val tempoSlider = Slider(context).apply {
-            valueFrom = 0.25f
-            valueTo = 4.0f
-            stepSize = 0.01f
-            value = initialPlaybackParameters.speed.coerceIn(0.25f, 4.0f)
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { layoutParams = it }
-        }
-
-        val tempoText = TextView(context).apply {
-            text = context.getString(
-                R.string.tempo_pitch_value,
-                context.getString(R.string.tempo),
-                tempoSlider.value
-            )
-            gravity = Gravity.CENTER
-            textSize = 16f
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { layoutParams = it }
-        }
-
-        val pitchSlider = Slider(context).apply {
-            valueFrom = 0.25f
-            valueTo = 4.0f
-            stepSize = 0.01f
-            value = initialPlaybackParameters.pitch.coerceIn(0.25f, 4.0f)
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { layoutParams = it }
-        }
-
-        val pitchText = TextView(context).apply {
-            text = context.getString(
-                R.string.tempo_pitch_value,
-                context.getString(R.string.pitch),
-                pitchSlider.value
-            )
-            gravity = Gravity.CENTER
-            textSize = 16f
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { layoutParams = it }
-        }
-
-        val lockCheckbox = MaterialCheckBox(context).apply {
-            text = context.getString(R.string.lock_tempo_pitch)
-            isChecked = isLocked
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { layoutParams = it }
-        }
-
-        pitchSlider.isEnabled = !isLocked
-        pitchText.isEnabled = !isLocked
-
-        val container = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(
-                48.dpToPx(context), 16.dpToPx(context),
-                48.dpToPx(context), 0
-            )
-            addView(tempoText)
-            addView(tempoSlider)
-            addView(pitchText)
-            addView(pitchSlider)
-            addView(lockCheckbox)
-        }
-
-        tempoSlider.addOnChangeListener { _, value, fromUser ->
-            tempoText.text = context.getString(
-                R.string.tempo_pitch_value,
-                context.getString(R.string.tempo),
-                value
-            )
-            if (fromUser) {
-                if (lockCheckbox.isChecked) {
-                    pitchSlider.value = value
-                }
-                instance?.playbackParameters =
-                    PlaybackParameters(tempoSlider.value, pitchSlider.value)
-            }
-        }
-
-        pitchSlider.addOnChangeListener { _, value, fromUser ->
-            pitchText.text = context.getString(
-                R.string.tempo_pitch_value,
-                context.getString(R.string.pitch),
-                value
-            )
-            if (fromUser) {
-                instance?.playbackParameters =
-                    PlaybackParameters(tempoSlider.value, pitchSlider.value)
-            }
-        }
-
-        lockCheckbox.setOnCheckedChangeListener { _, isChecked ->
-            pitchSlider.isEnabled = !isChecked
-            pitchText.isEnabled = !isChecked
-            if (isChecked) {
-                pitchSlider.value = tempoSlider.value
-                instance?.playbackParameters =
-                    PlaybackParameters(tempoSlider.value, pitchSlider.value)
-            }
-        }
-
-        MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.playback_speed)
-            .setView(NestedScrollView(context).apply { addView(container) })
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                prefs.edit {
-                    putBoolean("playback_tempo_pitch_locked", lockCheckbox.isChecked)
-                }
-            }
-            .setNegativeButton(android.R.string.cancel) { _, _ ->
-                instance?.playbackParameters = initialPlaybackParameters
-                if (wantsToBeLocked != isLocked) { // if external app changed speed/pitch.
-                    prefs.edit {
-                        putBoolean("playback_tempo_pitch_locked", false)
-                    }
-                }
-            }
-            .setNeutralButton(R.string.reset) { _, _ ->
-                prefs.edit {
-                    putBoolean("playback_tempo_pitch_locked", true)
-                }
-                instance?.playbackParameters = PlaybackParameters(1f, 1f)
-            }
-            .show()
     }
 
     fun onStop() {
@@ -874,7 +534,6 @@ class FullBottomSheet
                     or WindowInsetsCompat.Type.displayCutout()
         )
         setPadding(myInsets.left, myInsets.top, myInsets.right, myInsets.bottom)
-        ViewCompat.dispatchApplyWindowInsets(bottomSheetFullLyricView, insets.clone())
         return WindowInsetsCompat.Builder(insets)
             .setInsets(
                 WindowInsetsCompat.Type.systemBars()
@@ -959,94 +618,8 @@ class FullBottomSheet
             resources.configuration.uiMode =
                 context.resources.configuration.uiMode
         }.let { themeContext ->
-            if (prefs.getBoolean("pureDark", false) &&
-                (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                Configuration.UI_MODE_NIGHT_YES
-            ) {
-                ContextThemeWrapper(themeContext, R.style.ThemeOverlay_PureDark)
-            } else themeContext
+            themeContext
         }
-
-    private fun updateQualityIndicators(info: AudioFormatInfo?) {
-        val oldInfo =
-            (bottomSheetFullQualityDetails.getTag(R.id.quality_details) as AudioFormatInfo?)
-        if (oldInfo == info) return
-        (bottomSheetFullQualityDetails.getTag(R.id.fade_in_animation) as ViewPropertyAnimator?)?.cancel()
-        (bottomSheetFullQualityDetails.getTag(R.id.fade_out_animation) as ViewPropertyAnimator?)?.cancel()
-        if (info == null && bottomSheetFullQualityDetails.isInvisible) return
-        if (oldInfo != null)
-            applyQualityInfo(oldInfo)
-        bottomSheetFullQualityDetails.setTag(R.id.quality_details, info)
-        bottomSheetFullQualityDetails.fadOutAnimation(300) {
-            if (info == null)
-                return@fadOutAnimation
-            applyQualityInfo(info)
-            bottomSheetFullQualityDetails.fadInAnimation(300)
-        }
-    }
-
-    private fun applyQualityInfo(info: AudioFormatInfo) {
-        val icon = when (info.spatialFormat) {
-            SpatialFormat.SURROUND_5_0,
-            SpatialFormat.SURROUND_5_1,
-            SpatialFormat.SURROUND_6_1,
-            SpatialFormat.SURROUND_7_1 -> R.drawable.ic_surround_sound
-
-            SpatialFormat.DOLBY_AC3,
-            SpatialFormat.DOLBY_EAC3,
-            SpatialFormat.DOLBY_EAC3_JOC,
-            SpatialFormat.DOLBY_AC4,
-            SpatialFormat.DOLBY_TRUEHD -> R.drawable.ic_dolby
-
-            SpatialFormat.DTS,
-            SpatialFormat.DTS_EXPRESS,
-            SpatialFormat.DTS_HD,
-            SpatialFormat.DTS_UHD -> R.drawable.ic_dts
-
-            else -> when (info.quality) {
-                AudioQuality.HIRES -> R.drawable.ic_high_res
-                AudioQuality.HD -> R.drawable.ic_hd
-                AudioQuality.CD -> R.drawable.ic_cd
-                AudioQuality.HQ -> R.drawable.ic_hq
-                AudioQuality.LOSSY -> R.drawable.ic_lossy
-                else -> null
-            }
-        }
-
-        val drawable = icon?.let { iconRes ->
-            AppCompatResources.getDrawable(context, iconRes)?.apply {
-                setBounds(0, 0, 18.dpToPx(context), 18.dpToPx(context))
-            }
-        }
-        bottomSheetFullQualityDetails.setCompoundDrawablesRelative(drawable, null, null, null)
-
-        bottomSheetFullQualityDetails.text = buildString {
-            var hadFirst = false
-            info.bitDepth?.let {
-                hadFirst = true
-                append("${it}bit")
-            }
-            if (info.sampleRate != null) {
-                if (hadFirst)
-                    append(" / ")
-                else
-                    hadFirst = true
-                append("${info.sampleRate / 1000f}kHz")
-            }
-            if (info.sourceChannels != null) {
-                if (hadFirst)
-                    append(" / ")
-                else
-                    hadFirst = true
-                append("${info.sourceChannels}ch")
-            }
-            info.bitrate?.let {
-                if (hadFirst)
-                    append(" / ")
-                append("${it / 1000}kbps")
-            }
-        }
-    }
 
     private suspend fun applyColorScheme(animate: Boolean = true) {
         val ctx = wrappedContext ?: context
@@ -1121,16 +694,6 @@ class FullBottomSheet
             ctx
         )
 
-        val lyricsTextColor = androidx.core.graphics.ColorUtils.compositeColors(
-            androidx.core.graphics.ColorUtils.setAlphaComponent(colorPrimary, 77),
-            backgroundProcessedColor
-        )
-
-        val lyricsHighlightTlColor = androidx.core.graphics.ColorUtils.compositeColors(
-            androidx.core.graphics.ColorUtils.setAlphaComponent(colorPrimary, 200),
-            backgroundProcessedColor
-        )
-
         if (animate) {
 
             val surfaceTransition = ValueAnimator.ofArgb(
@@ -1159,18 +722,8 @@ class FullBottomSheet
             )
 
             val colorOnSurfaceTransition = ValueAnimator.ofArgb(
-                bottomSheetLyricButton.iconTint.defaultColor,
+                bottomSheetTimerButton.iconTint.defaultColor,
                 colorOnSurface
-            )
-
-            val lyricTextColorTransition = ValueAnimator.ofArgb(
-                bottomSheetFullLyricView.defaultTextColor,
-                lyricsTextColor
-            )
-
-            val lyricHighlightTlColorTransition = ValueAnimator.ofArgb(
-                bottomSheetFullLyricView.highlightTlTextColor,
-                lyricsHighlightTlColor
             )
 
             val loopTransition = ValueAnimator.ofArgb(
@@ -1205,9 +758,6 @@ class FullBottomSheet
                     setBackgroundColor(
                         animation.animatedValue as Int
                     )
-                    bottomSheetFullLyricView.setBackgroundColor(
-                        animation.animatedValue as Int
-                    )
                 }
                 duration = BACKGROUND_COLOR_TRANSITION_SEC
             }
@@ -1223,7 +773,6 @@ class FullBottomSheet
                         ColorStateList.valueOf(progressColor)
                     bottomSheetFullSeekBar.thumbTintList =
                         ColorStateList.valueOf(progressColor)
-                    bottomSheetFullLyricView.updateHighlightColor(progressColor)
                 }
                 duration = BACKGROUND_COLOR_TRANSITION_SEC
             }
@@ -1260,11 +809,7 @@ class FullBottomSheet
                     val progressColor = animation.animatedValue as Int
                     bottomSheetTimerButton.iconTint =
                         ColorStateList.valueOf(progressColor)
-                    bottomSheetPlaybackSpeedButton.iconTint =
-                        ColorStateList.valueOf(progressColor)
                     bottomSheetPlaylistButton.iconTint =
-                        ColorStateList.valueOf(progressColor)
-                    bottomSheetLyricButton.iconTint =
                         ColorStateList.valueOf(progressColor)
                     bottomSheetFullNextButton.iconTint =
                         ColorStateList.valueOf(progressColor)
@@ -1272,22 +817,6 @@ class FullBottomSheet
                         ColorStateList.valueOf(progressColor)
                     bottomSheetFullSlideUpButton.iconTint =
                         ColorStateList.valueOf(progressColor)
-                }
-                duration = BACKGROUND_COLOR_TRANSITION_SEC
-            }
-
-            lyricTextColorTransition.apply {
-                addUpdateListener { animation ->
-                    val progressColor = animation.animatedValue as Int
-                    bottomSheetFullLyricView.updateTextColor(progressColor)
-                }
-                duration = BACKGROUND_COLOR_TRANSITION_SEC
-            }
-
-            lyricHighlightTlColorTransition.apply {
-                addUpdateListener { animation ->
-                    val progressColor = animation.animatedValue as Int
-                    bottomSheetFullLyricView.updateHighlightTlColor(progressColor)
                 }
                 duration = BACKGROUND_COLOR_TRANSITION_SEC
             }
@@ -1323,8 +852,6 @@ class FullBottomSheet
                 onSecondaryContainerTransition.start()
                 colorContrastFaintedTransition.start()
                 colorOnSurfaceTransition.start()
-                lyricTextColorTransition.start()
-                lyricHighlightTlColorTransition.start()
                 loopTransition.start()
                 shuffleTransition.start()
                 favoriteTransition.start()
@@ -1337,7 +864,6 @@ class FullBottomSheet
         currentJob = null
         postOnAnimation {
             setBackgroundColor(backgroundProcessedColor)
-            bottomSheetFullLyricView.setBackgroundColor(backgroundProcessedColor)
             bottomSheetFullTitle.setTextColor(
                 colorPrimary
             )
@@ -1359,22 +885,7 @@ class FullBottomSheet
                 ColorStateList.valueOf(colorPrimary)
             bottomSheetFullSlider.trackInactiveTintList =
                 ColorStateList.valueOf(colorContrastFainted)
-            TextViewCompat.setCompoundDrawableTintList(
-                bottomSheetFullQualityDetails,
-                ColorStateList.valueOf(colorOnSurfaceVariant)
-            )
-            bottomSheetFullQualityDetails.setTextColor(
-                colorOnSurfaceVariant
-            )
-            bottomSheetFullLyricView.updateTextColor(
-                lyricsTextColor,
-                colorPrimary,
-                lyricsHighlightTlColor,
-            )
-
             bottomSheetTimerButton.iconTint =
-                ColorStateList.valueOf(colorOnSurface)
-            bottomSheetPlaybackSpeedButton.iconTint =
                 ColorStateList.valueOf(colorOnSurface)
             bottomSheetPlaylistButton.iconTint =
                 ColorStateList.valueOf(colorOnSurface)
@@ -1382,8 +893,6 @@ class FullBottomSheet
                 selectorBackground
             bottomSheetLoopButton.iconTint =
                 selectorBackground
-            bottomSheetLyricButton.iconTint =
-                ColorStateList.valueOf(colorOnSurface)
             bottomSheetFavoriteButton.iconTint =
                 selectorFavBackground
 
@@ -1460,7 +969,6 @@ class FullBottomSheet
                     min(instance?.currentPosition?.toFloat() ?: 0f, bottomSheetFullSlider.valueTo)
                 bottomSheetFullPosition.text = position
             }
-            bottomSheetFullLyricView.updateLyricPositionFromPlaybackPos()
         }
     }
 
@@ -1584,7 +1092,6 @@ class FullBottomSheet
                     min(instance?.currentPosition?.toFloat() ?: 0f, bottomSheetFullSlider.valueTo)
                 bottomSheetFullPosition.text = position
             }
-            bottomSheetFullLyricView.updateLyricPositionFromPlaybackPos()
             if (instance?.isPlaying == true && runnableRunning) {
                 handler.postDelayed(this, SLIDER_UPDATE_INTERVAL)
             } else {

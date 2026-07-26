@@ -17,11 +17,7 @@
 
 package com.igeeta.igpod.ui.components
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
@@ -35,7 +31,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
 import androidx.core.view.doOnNextLayout
-import androidx.core.view.isVisible
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.MediaItem
@@ -44,7 +39,6 @@ import androidx.media3.common.util.Log
 import androidx.media3.session.MediaController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
-import com.google.android.material.motion.MaterialBottomContainerBackHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -52,7 +46,6 @@ import kotlinx.coroutines.launch
 import com.igeeta.igpod.BuildConfig
 import com.igeeta.igpod.R
 import com.igeeta.igpod.logic.clone
-import com.igeeta.igpod.logic.fadOutAnimation
 import com.igeeta.igpod.logic.ui.MyBottomSheetBehavior
 import com.igeeta.igpod.ui.MainActivity
 
@@ -70,8 +63,6 @@ class PlayerBottomSheet private constructor(
 
     private var standardBottomSheetBehavior: MyBottomSheetBehavior<FrameLayout>? = null
 
-    @SuppressLint("RestrictedApi")
-    private var lyricsBackHelper: MaterialBottomContainerBackHelper? = null
     private var bottomSheetBackCallback: OnBackPressedCallback? = null
     val fullPlayer: FullBottomSheet
     private val previewPlayer: View
@@ -84,7 +75,6 @@ class PlayerBottomSheet private constructor(
     private val instance: MediaController?
         get() = activity.getPlayer()
     private val fragmentContainer: View by lazy { activity.findViewById(R.id.container)!! }
-    private val lyricsFrame: View by lazy { activity.findViewById(R.id.lyric_framelayout)!! }
     private var lastActuallyVisible: Boolean? = null
     private var lastMeasuredHeight: Int? = null
     var visible = false
@@ -141,10 +131,8 @@ class PlayerBottomSheet private constructor(
                     fullPlayer.visibilityDueToBottomSheet = GONE
                     previewPlayer.visibility = VISIBLE
                     fragmentContainer.visibility = VISIBLE
-                    lyricsFrame.visibility = GONE
                     previewPlayer.alpha = 1f
                     fullPlayer.alpha = 0f
-                    lyricsFrame.alpha = 0f
                     bottomSheetBackCallback!!.isEnabled = false
                 }
 
@@ -152,17 +140,14 @@ class PlayerBottomSheet private constructor(
                     fullPlayer.visibilityDueToBottomSheet = VISIBLE
                     previewPlayer.visibility = VISIBLE
                     fragmentContainer.visibility = VISIBLE
-                    lyricsFrame.visibility = VISIBLE
                 }
 
                 BottomSheetBehavior.STATE_EXPANDED -> {
                     previewPlayer.visibility = GONE
                     fullPlayer.visibilityDueToBottomSheet = VISIBLE
                     // TODO: uncomment fragmentContainer.visibility = INVISIBLE
-                    lyricsFrame.visibility = VISIBLE
                     previewPlayer.alpha = 0f
                     fullPlayer.alpha = 1f
-                    lyricsFrame.alpha = 1f
                     bottomSheetBackCallback!!.isEnabled = true
                 }
 
@@ -170,10 +155,8 @@ class PlayerBottomSheet private constructor(
                     previewPlayer.visibility = GONE
                     fullPlayer.visibilityDueToBottomSheet = VISIBLE
                     fragmentContainer.visibility = VISIBLE
-                    lyricsFrame.visibility = VISIBLE
                     previewPlayer.alpha = 0f
                     fullPlayer.alpha = 1f
-                    lyricsFrame.alpha = 1f
                     bottomSheetBackCallback!!.isEnabled = true
                 }
 
@@ -181,10 +164,8 @@ class PlayerBottomSheet private constructor(
                     previewPlayer.visibility = GONE
                     fullPlayer.visibilityDueToBottomSheet = GONE
                     fragmentContainer.visibility = VISIBLE
-                    lyricsFrame.visibility = GONE
                     previewPlayer.alpha = 0f
                     fullPlayer.alpha = 0f
-                    lyricsFrame.alpha = 0f
                     bottomSheetBackCallback!!.isEnabled = false
                 }
             }
@@ -199,12 +180,10 @@ class PlayerBottomSheet private constructor(
                 // hidden state
                 previewPlayer.alpha = 1 - (-1 * slideOffset)
                 fullPlayer.alpha = 0f
-                lyricsFrame.alpha = 0f
                 return
             }
             previewPlayer.alpha = 1 - (slideOffset)
             fullPlayer.alpha = slideOffset
-            lyricsFrame.alpha = slideOffset
         }
     }
 
@@ -215,73 +194,23 @@ class PlayerBottomSheet private constructor(
             fullPlayer.minimize = {
                 standardBottomSheetBehavior!!.state = BottomSheetBehavior.STATE_COLLAPSED
             }
-            @SuppressLint("RestrictedApi")
-            lyricsBackHelper =
-                MaterialBottomContainerBackHelper(fullPlayer.bottomSheetFullLyricView)
             bottomSheetBackCallback = object : OnBackPressedCallback(enabled = false) {
                 override fun handleOnBackStarted(backEvent: BackEventCompat) {
-                    if (fullPlayer.bottomSheetFullLyricView.isVisible) {
-                        @SuppressLint("RestrictedApi")
-                        lyricsBackHelper!!.startBackProgress(backEvent)
-                    } else {
-                        standardBottomSheetBehavior!!.startBackProgress(backEvent)
-                    }
+                    standardBottomSheetBehavior!!.startBackProgress(backEvent)
                 }
 
                 override fun handleOnBackProgressed(backEvent: BackEventCompat) {
-                    if (fullPlayer.bottomSheetFullLyricView.isVisible) {
-                        @SuppressLint("RestrictedApi")
-                        lyricsBackHelper!!.updateBackProgress(backEvent)
-                    } else {
-                        standardBottomSheetBehavior!!.updateBackProgress(backEvent)
-                    }
+                    standardBottomSheetBehavior!!.updateBackProgress(backEvent)
                 }
 
                 override fun handleOnBackPressed() {
-                    if (fullPlayer.bottomSheetFullLyricView.isVisible) {
-                        @SuppressLint("RestrictedApi")
-                        val backEvent = lyricsBackHelper!!.onHandleBackInvoked()
-                        if (backEvent == null || backEvent.progress == 0f
-                            || Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                        ) {
-                            fullPlayer.bottomSheetFullLyricView.fadOutAnimation(FullBottomSheet.LYRIC_FADE_TRANSITION_SEC)
-                            return
-                        }
-                        @SuppressLint("RestrictedApi")
-                        lyricsBackHelper!!.finishBackProgressPersistent(
-                            backEvent,
-                            object : AnimatorListenerAdapter() {
-                                override fun onAnimationStart(animation: Animator) {
-                                    fullPlayer.bottomSheetFullLyricView.fadOutAnimation(FullBottomSheet.LYRIC_FADE_TRANSITION_SEC)
-                                }
-                            })
-                    } else {
-                        standardBottomSheetBehavior!!.handleBackInvoked()
-                    }
+                    standardBottomSheetBehavior!!.handleBackInvoked()
                 }
 
                 override fun handleOnBackCancelled() {
-                    if (fullPlayer.bottomSheetFullLyricView.isVisible) {
-                        @SuppressLint("RestrictedApi")
-                        lyricsBackHelper!!.cancelBackProgress()
-                    } else {
-                        standardBottomSheetBehavior!!.cancelBackProgress()
-                    }
+                    standardBottomSheetBehavior!!.cancelBackProgress()
                 }
             }
-            /*
-            lyricSheetBackCallback = object : OnBackPressedCallback(enabled = false) {
-                override fun handleOnBackPressed() {
-                    bottomSheetFullLyricRecyclerView.fadOutAnimation(LYRIC_FADE_TRANSITION_SEC)
-                    bottomSheetFullLyricGradientViewUp.fadOutAnimation(LYRIC_FADE_TRANSITION_SEC)
-                    bottomSheetFullLyricGradientViewDown.fadOutAnimation(LYRIC_FADE_TRANSITION_SEC)
-                    bottomSheetLyricButton.isChecked = false
-                    activity.onBackPressedDispatcher.addCallback(activity, bottomSheetBackCallback!!)
-                    bottomSheetBackCallback!!.isEnabled = true
-                }
-            }
-
-             */
             activity.onBackPressedDispatcher.addCallback(activity, bottomSheetBackCallback!!)
             standardBottomSheetBehavior!!.addBottomSheetCallback(bottomSheetCallback)
             // this is required after onRestoreSavedInstanceState() in BottomSheetBehaviour
@@ -345,8 +274,6 @@ class PlayerBottomSheet private constructor(
         previewPlayer.setPadding(myInsets.left, 0, myInsets.right, myInsets.bottom)
         // Let fullPlayer handle insets itself (and discard result as it's irrelevant to hierarchy)
         ViewCompat.dispatchApplyWindowInsets(fullPlayer, insets.clone())
-        // Same for lyrics view
-        ViewCompat.dispatchApplyWindowInsets(fullPlayer.bottomSheetFullLyricView, insets.clone())
         // Now make sure BottomSheetBehaviour has the correct View height set.
         if (isLaidOut && !isLayoutRequested) {
             updatePeekHeight()

@@ -23,23 +23,4 @@
         android:clipToPadding="false"
         android:visibility="gone" />
 
-    <FrameLayout
-        android:id="@+id/lyric_framelayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="0"
-        android:visibility="gone">
-
-        <com.igeeta.igpod.ui.components.LyricsView
-            android:id="@+id/lyric_frame"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="?attr/colorSurface"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:keepScreenOn="true"
-            android:visibility="gone"
-            tools:listitem="@layout/lyrics" />
-    </FrameLayout>
-
 </merge>

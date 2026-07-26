@@ -30,7 +30,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.igeeta.igpod.BuildConfig
 import com.igeeta.igpod.R
 import com.igeeta.igpod.logic.utils.ColorUtils
-import com.igeeta.igpod.logic.utils.data.Contributors
 import com.igeeta.igpod.ui.fragments.BasePreferenceFragment
 import com.igeeta.igpod.ui.fragments.BaseSettingsActivity
 
@@ -43,15 +42,9 @@ class AboutSettingsFragment : BasePreferenceFragment() {
         setPreferencesFromResource(R.xml.settings_about, rootKey)
         val versionPrefs = findPreference<Preference>("app_version")
         val releaseType = findPreference<Preference>("package_type")
-        val contributorsPref = findPreference<Preference>("contributors")
         versionPrefs!!.summary = BuildConfig.MY_VERSION_NAME
         releaseType!!.summary = BuildConfig.RELEASE_TYPE
-        contributorsPref!!.summary =
-            requireContext().getString(
-                R.string.settings_contributors_click,
-                Contributors.LIST.subList(0, 5).joinToString { it.login })
     }
-
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         if (preference.key == "app_name") {
             val processColor = ColorUtils.getColor(
@@ -79,8 +72,6 @@ class AboutSettingsFragment : BasePreferenceFragment() {
             // does not render correctly on old versions for mysterious reasons
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
                 rootView.findViewById<View>(R.id.iconCard)!!.visibility = View.GONE
-        } else if (preference.key == "contributors") {
-            startActivity(ContributorsSettingsActivity::class.java)
         } else if (preference.key == "package_type") {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.settings_package_type)

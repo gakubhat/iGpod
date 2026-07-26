@@ -35,12 +35,6 @@ class GramophoneExtractorsFactory : ExtractorsFactory {
                         Extractor::class.java
                     ).getConstructor(Integer.TYPE) else null
             }
-        private val MIDI_EXTENSION_LOADER =
-            ExtensionLoader {
-                Class.forName("androidx.media3.decoder.midi.MidiExtractor").asSubclass(
-                    Extractor::class.java
-                ).getConstructor()
-            }
     }
 
     private var constantBitrateSeekingEnabled = false
@@ -171,12 +165,6 @@ class GramophoneExtractorsFactory : ExtractorsFactory {
 
             9 -> extractors.add(OggExtractor())
             12 -> extractors.add(WavExtractor())
-            15 -> {
-                val midiExtractor = MIDI_EXTENSION_LOADER.getExtractor()
-                if (midiExtractor != null) {
-                    extractors.add(midiExtractor)
-                }
-            }
 
             else -> {}
         }

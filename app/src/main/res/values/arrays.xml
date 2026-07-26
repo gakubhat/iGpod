@@ -26,18 +26,6 @@
         <item>3</item>
     </string-array>
 
-    <string-array name="offload_switch" translatable="false">>
-        <item>@string/disabled</item>
-        <item>@string/offload_enabled_if_gapless</item>
-        <item>@string/offload_enabled_if_supported</item>
-    </string-array>
-
-    <string-array name="offload_switch_val" translatable="false">
-        <item>0</item>
-        <item>2</item>
-        <item>1</item>
-    </string-array>
-
     <string-array name="shuffle_all_queries" translatable="false">
         <item>@string/actions_query_shuffle_all_songs</item>
         <item>@string/actions_query_shuffle_everything</item>

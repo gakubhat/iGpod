@@ -35,7 +35,6 @@ import com.igeeta.igpod.R
 import com.igeeta.igpod.logic.QueueBoard
 import com.igeeta.igpod.logic.utils.CircularShuffleOrder
 import com.igeeta.igpod.logic.utils.Flags
-import com.igeeta.igpod.logic.utils.SemanticLyrics
 import org.json.JSONObject
 import uk.akane.libphonograph.items.EXTRA_HD_ARTWORK_URI
 import uk.akane.libphonograph.items.artistId
@@ -51,7 +50,6 @@ import java.util.Objects
 class EndedWorkaroundPlayer(
     val context: Context,
     exoPlayer: ExoPlayer,
-    private val getLyric: () -> SemanticLyrics?,
     val queueBoard: QueueBoard
 ) : ForwardingSimpleBasePlayer(exoPlayer),
     Player.Listener {
@@ -95,12 +93,6 @@ class EndedWorkaroundPlayer(
         super.onPositionDiscontinuity(oldPosition, newPosition, reason)
     }
 
-    fun updateLyricNow() {
-        if (BuildConfig.APPLICATION_ID == "com.tencent.qqmusic") {
-            invalidateState()
-        }
-    }
-
     override fun getState(): State {
         var superState = super.state
         if (superState.currentMetadata.artworkUri != null &&
@@ -114,36 +106,6 @@ class EndedWorkaroundPlayer(
                         })
                         .build())
                 .build()
-        }
-        if (BuildConfig.APPLICATION_ID == "com.tencent.qqmusic") {
-            // Oplus uses package name whitelist for their lockscreen lyric feature
-            val lyric = getLyric()
-            if (lyric != null && lyric is SemanticLyrics.SyncedLyrics) {
-                superState = superState.buildUpon()
-                    .setPlaylist(superState.timeline, superState.currentTracks,
-                        superState.currentMetadata.buildUpon()
-                            .setExtras((superState.currentMetadata.extras?.let { Bundle(it) }
-                                ?: Bundle()).apply {
-                                putString("lyricInfo", JSONObject().apply {
-                                    put("songName", superState.currentMetadata.title)
-                                    put("artist", superState.currentMetadata.artist)
-                                    // Put lyric hash code into songId as well to be able to reset
-                                    // lyrics if they load late or get changed.
-                                    put("songId", superState.playlist.getOrNull(
-                                        superState.currentMediaItemIndex)?.mediaItem?.mediaId
-                                        .toString() + Objects.toIdentityString(lyric))
-                                    // This can parse some odd Netease-specific JSON list or normal
-                                    // LRC without bells and whistles (fwiw, the Netease format is
-                                    // not even better than plain LRC), no word sync as of right now
-                                    put("lyric", lyric.text.joinToString(
-                                        "\n") {
-                                        val s = it.start.toLong() / 1000
-                                        "[%02d:%02d.%02d]".format(s / 60, s % 60,
-                                            (it.start.toLong() % 1000) / 10) + it.text
-                                    })
-                                }.toString())
-                            }).build()).build()
-            }
         }
         if (isEnded) {
             if (superState.playerError != null) {
