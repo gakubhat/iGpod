@@ -1,94 +1,132 @@
-# Gramophone
-![GitHub](https://img.shields.io/github/license/FoedusProgramme/Gramophone?style=flat-square&logoColor=white&labelColor=black&color=white)
-![GitHub tag (with filter)](https://img.shields.io/github/v/tag/FoedusProgramme/Gramophone?style=flat-square&logoColor=white&labelColor=black&color=white)
-[![Static Badge](https://img.shields.io/badge/Telegram-Content?style=flat-square&logo=telegram&logoColor=black&color=white)](https://t.me/FoedusProgramme)
+# iGpod
 
-[日本語](./readme_ja.md)
+A music player for Android, **forked and redesigned from [Gramophone](https://github.com/FoedusProgramme/Gramophone)** (`org.akanework.gramophone`).
 
-A sane music player built with media3 and the Material Design library that is following Android's standard strictly.
+iGpod keeps Gramophone's clean Media3-based player core but repurposes it as a
+focused, server-synced player for a fixed local music collection rather than a
+general-purpose on-device browser.
 
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-     alt="Get it on F-Droid"
-     height="80">](https://f-droid.org/packages/org.akanework.gramophone/)
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height="80">](https://apt.izzysoft.de/fdroid/index/apk/org.akanework.gramophone)
-[<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="80">](https://play.google.com/store/apps/details?id=org.akanework.gramophone&utm_source=github.com&utm_campaign=readme)
+- **Package:** `com.igeeta.igpod` (debug build: `com.igeeta.igpod.debug`)
+- **Upstream lineage:** `FoedusProgramme/Gramophone` (we track its `beta`)
+- **This repo:** `gakubhat/iGpod` (default branch `main`)
 
-## Features
-- Light, stable, and minimalistic
-- Up-to-date Material 3 design and theme
-  - Dynamic player UI Monet color
-  - Monet themed icon (Android 12+)
-- Music library features
-  - Search and browse for your favourite music
-  - Uses MediaStore to quickly access on-device music
-  - List and grid views
-  - Browse songs by folder and filesystem
-  - Natural sorting and various other sorting options
-  - Playlist support
-- Synced lyrics
-  - LRC, TTML, SRT
-  - Supports word/syllable Karaoke lyrics synchronization
-- Full support for ReplayGain 2.0
-- Support for system/third-party Equalizer apps
+---
 
-## Screenshots
-| ![Screenshot 1](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_1.jpg) | ![Screenshot 2](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_2.jpg) | ![Screenshot 3](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_3.jpg) |
-|------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ![Screenshot 4](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_4.jpg) | ![Screenshot 5](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_5.jpg) | ![Screenshot 6](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_6.jpg) |
-| ![Screenshot 7](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_7.jpg) | ![Screenshot 8](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/metadata/android/en-US/images/phoneScreenshots/screenshot_8.jpg) | ![Screenshot 9](https://raw.githubusercontent.com/FoedusProgramme/Gramophone/beta/fastlane/screenshot_9.jpg) |
+## What iGpod is (vs. Gramophone)
 
+| Area | Gramophone | iGpod |
+|------|-----------|-------|
+| Music source | MediaStore browsing of all on-device audio | **Always-DB mode** from a fixed folder `/Music/iGeeta` |
+| Library scan | MediaStore | DB populated by sync with the iGeeta server |
+| First run | Manual setup | **First launch triggers a Sync** |
+| Rating | 1–5 stars | **Single heart ⇔ favorite** (`rating >= 3` ⇒ filled) |
+| Sleep timer | Custom duration entry | **Dropdown**: End-of-song / 15 / 30 / 45 / 60 / 90 min |
+| Playback speed | Built-in control | **Removed** |
+| Lyrics / LRC | Full synced-lyrics support | **Removed** |
+| Audio / ReplayGain / Equalizer | Supported | **Removed** |
+| Experimental / Blacklist / Whitelist | Present | **Removed** |
+| Theme | Material You dynamic (Monet) | **Fixed green/avocado theme** (non-dynamic) |
+| Launcher icon | Gramophone gramophone | **Jango** artwork |
+| App-bar | Default | Brand on the **left** (icon + "iGpod"), search on the **right** |
 
-## Installation
-You can download the latest stable version of the app from either [GitHub releases](https://github.com/FoedusProgramme/Gramophone/releases/latest), [F-Droid](https://f-droid.org/packages/org.akanework.gramophone/), or from [IzzyOnDroid](https://apt.izzysoft.de/fdroid/index/apk/org.akanework.gramophone).
+### Rating model
+- A single heart represents *favorite*.
+- `track.rating >= 3` ⇒ heart filled.
+- Tapping the heart sets `local_rating = 3` (on) or `0` (off) and marks the row
+  dirty.
+- Dirty rows are pushed to the server on the next sync via
+  `POST /api/track/rating?path=<filePath>`.
+- On pull, the server's `rating` is applied only when the local row is **not**
+  dirty.
 
-Beta versions and sneak peeks are available in the [telegram channel](https://t.me/FoedusProgramme) or [chat](https://t.me/FoedusDiscussion).
+### Artwork
+Album/track artwork paths are stored in the DB as **relative** paths. At load
+time they are resolved against the music root and copied into the app-private
+`files/artwork/` directory (scoped-storage safe).
+
+---
+
+## Repository layout & submodules
+
+iGpod builds a **custom Media3 (ExoPlayer) fork in-tree**. The build uses Gradle
+`includeBuild` + dependency substitution, so the `androidx.media3:*` artifacts are
+replaced by projects compiled from the submodule.
+
+```
+.gitmodules
+  [submodule "media3"]
+      path   = media3
+      url    = https://github.com/nift4/media      # nift4's Media3 fork
+      branch = gramophone                          # pinned @ 962f72c
+  [submodule "hificore/src/main/cpp/libusb-cmake"]
+      path   = hificore/src/main/cpp/libusb-cmake
+      url    = https://github.com/libusb/libusb-cmake
+```
+
+`media3 @ 962f72c` in the commit graph refers to this pinned submodule commit
+(the custom ExoPlayer used by Gramophone/iGpod). **The submodule contents are
+NOT stored in this repo** — they live in the external repos above.
+
+---
 
 ## Building
-To build this app, you will need the latest beta version of [Android Studio](https://developer.android.com/studio) and a fast network.
 
-### 1. Submodules
+### Prerequisites
+- **JDK 21** (e.g. Android Studio's bundled JBR)
+- **Android SDK** with `ANDROID_HOME` set
+- Git with submodule support
 
-Gramophone includes certain dependencies such as media3 as git submodule. Make sure you download git submodules by running `git submodule update --init --recursive` before trying to build Gramophone.
+### 1. Clone with submodules
+```bash
+git clone git@github.com:gakubhat/iGpod.git
+cd iGpod
+git submodule update --init --recursive   # REQUIRED — build fails without media3
+```
 
-### 2. Set up package type
-Gramophone has a package type that indicates the source of the application package. Package type string is extracted from an external file named `package.properties`.
+### 2. Configure the toolchain
+```bash
+export ANDROID_HOME=/Users/gsbhat/Library/Android/sdk
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+```
 
-Simply open your favorite text editor, type `releaseType=SelfBuilt`, and save it in the root folder of the repository as `package.properties`.
+### 3. Build the debug APK
+```bash
+./gradlew assembleDebug
+# APK: app/build/outputs/apk/debug/iGpod-*.apk
+```
 
-### 3. Start the build
-Launch Android Studio and import your own app signing signature. You should be able to build Gramophone now.
+### 4. Install / verify on a device
+```bash
+adb install -r app/build/outputs/apk/debug/iGpod-*.apk
+```
+On first launch the app performs an initial **Sync** with the iGeeta server and
+populates the library from `/Music/iGeeta`.
+
+---
+
+## Sync server
+
+iGpod syncs against an iGeeta backend. Relevant endpoints used by the app:
+
+- `POST /api/track/rating?path=<filePath>` — upload local rating (heart on/off).
+- Library / artwork metadata is pulled during Sync and stored in the local DB.
+
+---
+
+## Notes / known quirks
+
+- **Launcher icon background on Samsung One UI:** the launcher auto-tints an
+  adaptive icon's background from the icon's dominant accent (Jango's green
+  ring). The Jango foreground art is correct; the green frame is a Samsung
+  One UI cosmetic, not controlled by the APK. Toggle "Icon backgrounds" in
+  launcher settings to change it.
+- This is a **redesign fork**, not a drop-in Gramophone build. Features listed
+  as "removed" above are intentionally absent.
+
+---
 
 ## License
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](https://github.com/FoedusProgramme/Gramophone/blob/beta/LICENSE) file for details.
 
-## Translation
-<a href="https://hosted.weblate.org/engage/gramophone/">
-<img src="https://hosted.weblate.org/widget/gramophone/strings-xml/horizontal-auto.svg" alt="Translation status" />
-</a>
-
-## Notice
-- Discussion chat: [Telegram](https://t.me/FoedusDiscussion)
-- GitHub/F-Droid/IzzyOnDroid certificate SHA-256 digest: f451197ad7b80bd1bc981ba38a2c49d471856fb38bcc333676d6e8f8f3ce5d6e
-- Play Store certificate SHA-256 digest: 178869b0f9130d145b53404df4d4e5e311095406cb3c51a3e7a4b03bb3e87786
-
-## FAQ
-
-**Why can't I see songs shorter than 60 seconds?**
-Gramophone hides songs shorter than 60 seconds by default. You can change it in _Three dots > Settings > Behaviour_ (set the setting to 0 to show all songs).
-
-**I changed the minimum song length setting, but some songs are still missing!**
-Make sure you haven't excluded the folder in _Behaviour > Folder blacklist_.
-Then, try to reboot your phone, then wait a few minutes (this will rescan the system-wide media database Gramophone uses to find songs).
-If it's still not visible, your system version may not support scanning this file extension: this most commonly is observed for .opus, which will only be scanned since Android 10 (pro tip: rename your .opus file to .ogg, and it will be detected on Android 6 and later).
-
-**My song isn't playing! / My song is playing, but it's completely silent, yet the volume is turned up!**
-Please note that Gramophone relies on system media codecs to make the app smaller. This means
-- int32 (32-bit) FLAC files will only work on Android 14 or later
-- FLAC files often do work even on versions prior to Android 8, but are only officially supported on Android 8 or later
-- xHE-AAC files in general will only work on Android 9 or later
-- Dolby Digital (AC-3) / Dolby Digital Plus (E-AC-3) / AC-4 requires a device that has licensed decoders for these formats
-
-There is one exception: ALAC files can be played even without the system ALAC decoder as Gramophone includes an extremely lightweight Java ALAC decoder.
-
-## Friends
-[SongSync](https://github.com/lambada10/songsync)
+Inherited from Gramophone / upstream dependencies. See `LICENSE` in the respective
+submodules and the original Gramophone project for details.
