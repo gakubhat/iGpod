@@ -31,6 +31,7 @@ import android.media.audiofx.AudioEffect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -50,6 +51,9 @@ import androidx.media3.common.C
 import androidx.media3.common.DeviceInfo
 import androidx.media3.common.HeartRating
 import androidx.media3.common.IllegalSeekPositionException
+import com.igeeta.igpod.logic.GramophoneAlbumArtProvider
+import com.igeeta.igpod.sync.SyncDatabase
+import com.igeeta.igpod.sync.SyncedTrack
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -77,6 +81,7 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.MediaConstants
 import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSession.MediaItemsWithStartPosition
 import androidx.media3.session.MediaSessionService
@@ -121,6 +126,7 @@ import uk.akane.libphonograph.items.albumId
 import uk.akane.libphonograph.manipulator.ItemManipulator
 import uk.akane.libphonograph.manipulator.PlaylistSerializer
 import uk.akane.libphonograph.manipulator.PlaylistSerializer.Entry
+import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -160,7 +166,13 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
 
         const val SERVICE_QB_AGE = "qb_age"
 
-        }
+        // Android Auto browse-tree node IDs
+        private const val ROOT_ID = "root"
+        private const val ALBUMS_ID = "albums"
+        private const val ARTISTS_ID = "artists"
+        private const val SONGS_ID = "songs"
+        private const val PLAYLISTS_ID = "playlists"
+    }
 
     private var lastSessionId = 0
     private val internalPlaybackThread =
@@ -992,25 +1004,169 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         return settable
     }
 
-    /*override fun onGetLibraryRoot(
+    override fun onGetLibraryRoot(
         session: MediaLibrarySession,
         browser: MediaSession.ControllerInfo,
-        params: LibraryParams?
+        params: MediaLibraryService.LibraryParams?
     ): ListenableFuture<LibraryResult<MediaItem>> {
-        val outParams = LibraryParams.Builder()
-            .setOffline(true)
-            .setSuggested(false)
-            .setRecent(false)
-            .build()
         val item = MediaItem.Builder()
-            .setMediaId("root")
-            .setMediaMetadata(MediaMetadata.Builder()
+            .setMediaId(ROOT_ID)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setIsBrowsable(true)
+                    .setIsPlayable(false)
+                    .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                    .setTitle(getString(R.string.app_name))
+                    .build()
+            )
+            .build()
+        return Futures.immediateFuture(
+            LibraryResult.ofItem(item, MediaLibraryService.LibraryParams.Builder().setOffline(true).build())
+        )
+    }
+
+    override fun onGetChildren(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        parentId: String,
+        page: Int,
+        pageSize: Int,
+        params: MediaLibraryService.LibraryParams?
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+        val db = SyncDatabase.getInstance(applicationContext)
+        val items = when (parentId) {
+            ROOT_ID -> listOf(
+                categoryItem(ALBUMS_ID, getString(R.string.auto_albums), MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS),
+                categoryItem(ARTISTS_ID, getString(R.string.auto_artists), MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS),
+                categoryItem(SONGS_ID, getString(R.string.auto_songs), MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+                categoryItem(PLAYLISTS_ID, getString(R.string.auto_playlists), MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
+            )
+            ALBUMS_ID -> runBlocking {
+                db.getAllTracks().map { it.album }.filter { it.isNotEmpty() }
+                    .distinct().sorted().map { album ->
+                        categoryItem(
+                            "album:$album", album, MediaMetadata.MEDIA_TYPE_ALBUM,
+                            db.getAllTracks().firstOrNull { it.album == album }
+                                ?.let { artUriFor(it) }
+                        )
+                    }
+            }
+            ARTISTS_ID -> runBlocking {
+                db.getAllTracks().flatMap { parseArtists(it.artists) }.filter { it.isNotEmpty() }
+                    .distinct().sorted().map { artist ->
+                        categoryItem("artist:$artist", artist, MediaMetadata.MEDIA_TYPE_ARTIST)
+                    }
+            }
+            SONGS_ID -> runBlocking { db.getAllTracks().map { trackItem(it) } }
+            PLAYLISTS_ID -> runBlocking {
+                db.getAllPlaylists().map { pl ->
+                    categoryItem("playlist:${pl.serverId}", pl.name, MediaMetadata.MEDIA_TYPE_PLAYLIST)
+                }
+            }
+            else -> {
+                // album:<name> / artist:<name> / playlist:<id>
+                val colon = parentId.indexOf(':')
+                if (colon < 0) emptyList()
+                else {
+                    val kind = parentId.substring(0, colon)
+                    val value = parentId.substring(colon + 1)
+                    runBlocking {
+                        when (kind) {
+                            "album" -> db.getAllTracks().filter { it.album == value }.map { trackItem(it) }
+                            "artist" -> db.getAllTracks().filter { parseArtists(it.artists).contains(value) }.map { trackItem(it) }
+                            "playlist" -> db.getTracksByPlaylist(value.toIntOrNull() ?: -1).map { trackItem(it) }
+                            else -> emptyList()
+                        }
+                    }
+                }
+            }
+        }
+        return Futures.immediateFuture(LibraryResult.ofItemList(ArrayList(items), MediaLibraryService.LibraryParams.Builder().setOffline(true).build()))
+    }
+
+    override fun onSearch(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        query: String,
+        params: MediaLibraryService.LibraryParams?
+    ): ListenableFuture<LibraryResult<Void>> {
+        // TODO: surface search results to Auto via a search root in onGetChildren.
+        return Futures.immediateFuture(LibraryResult.ofVoid())
+    }
+
+    private fun categoryItem(
+        id: String,
+        title: String,
+        mediaType: Int,
+        artwork: Uri? = null
+    ): MediaItem = MediaItem.Builder()
+        .setMediaId(id)
+        .setMediaMetadata(
+            MediaMetadata.Builder()
                 .setIsBrowsable(true)
                 .setIsPlayable(false)
-                .build())
+                .setMediaType(mediaType)
+                .setTitle(title)
+                .apply { if (artwork != null) setArtworkUri(artwork) }
+                .build()
+        )
+        .build()
+
+    // Builds a playable MediaItem for Android Auto from a SyncedTrack. Uses a
+    // content:// artwork URI (served by GramophoneAlbumArtProvider) so the head
+    // unit can load art across process boundaries (app-private file:// won't work).
+    private fun trackItem(track: SyncedTrack): MediaItem {
+        val id = track.filePath.hashCode().toLong()
+        val fullPath = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+            "iGeeta/${track.filePath}"
+        )
+        val artists = parseArtists(track.artists).firstOrNull()
+        return MediaItem.Builder()
+            .setMediaId("Db:$id")
+            .setUri(android.net.Uri.fromFile(fullPath))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setIsBrowsable(false)
+                    .setIsPlayable(true)
+                    .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
+                    .setDurationMs((track.duration * 1000).toLong())
+                    .setTitle(track.title.ifEmpty { track.filePath.substringAfterLast('/') })
+                    .setArtist(artists)
+                    .setAlbumTitle(track.album.ifEmpty { null })
+                    .setArtworkUri(artUriFor(track))
+                    .setGenre(track.genre.ifEmpty { null })
+                    .build()
+            )
             .build()
-        return Futures.immediateFuture(LibraryResult.ofItem(item, outParams))
-    }*/
+    }
+
+    private fun artUriFor(track: SyncedTrack): Uri {
+        val id = track.filePath.hashCode().toLong()
+        val fullPath = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+            "iGeeta/${track.filePath}"
+        )
+        // Mirror RadioManager.trackToMediaItem: prefer server-downloaded artwork
+        // in the app-private artwork dir; fall back to the embedded-art content
+        // provider URI only when no server art is available.
+        val artworkBaseDir = File(applicationContext.filesDir, "artwork")
+        val artworkRel = listOf(track.trackArtPath, track.artworkLocalPath)
+            .firstOrNull { rel -> !rel.isNullOrEmpty() &&
+                File(artworkBaseDir, rel).let { it.exists() && it.length() > 0L } }
+        return if (artworkRel != null) {
+            // Cross-process-safe: head unit can't read app-private file://,
+            // so route server art through the exported album-art content provider.
+            GramophoneAlbumArtProvider.buildArtworkUri(artworkRel)
+        } else {
+            GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
+        }
+    }
+
+    private fun parseArtists(json: String): List<String> = try {
+        val arr = org.json.JSONArray(json)
+        (0 until arr.length()).map { arr.getString(it) }
+    } catch (_: Exception) { emptyList() }
 
     override fun onTracksChanged(tracks: Tracks) {
         if (!tracks.isEmpty && !tracks.isTypeSelected(C.TRACK_TYPE_AUDIO)) {

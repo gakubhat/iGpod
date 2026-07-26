@@ -123,12 +123,43 @@ class GramophoneAlbumArtProvider : ContentProvider() {
                 .appendPath(id.toString())
                 .appendQueryParameter("songFile", songFile.absolutePath)
                 .build()
+
+        /**
+         * Builds a `content://` URI pointing to server-downloaded artwork stored
+         * in the app-private `files/artwork/<relPath>`. Unlike [buildSongUri]
+         * (which extracts *embedded* art from the MP3), this serves an explicit
+         * artwork file and is therefore safe to hand to external processes such
+         * as Android Auto's head unit, which cannot read app-private `file://`.
+         *
+         * @param relPath the artwork file's path relative to `files/artwork/`
+         */
+        fun buildArtworkUri(relPath: String): Uri =
+            Uri.Builder()
+                .scheme(ContentResolver.SCHEME_CONTENT)
+                .authority(PROVIDER_AUTHORITY)
+                .appendPath("artwork")
+                .appendPath(relPath)
+                .build()
     }
 
     override fun onCreate() = true
 
     @OptIn(InternalCoroutinesApi::class)
     private suspend fun openFileCommon(uri: Uri, size: Point?, allowPartial: Boolean): AssetFileDescriptor? {
+        // Server-downloaded artwork: serve the explicit file from files/artwork/.
+        // This is the cross-process-safe path used by Android Auto's head unit,
+        // which cannot read app-private file:// URIs.
+        if (uri.pathSegments.firstOrNull() == "artwork") {
+            val rel = uri.pathSegments.getOrNull(1) ?: return null
+            val file = File(context!!.filesDir, "artwork/$rel")
+            if (file.exists() && file.length() > 0L) {
+                return AssetFileDescriptor(
+                    ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY),
+                    0L, file.length()
+                )
+            }
+            return null
+        }
         val context = context!!
         val cfd = CompletableDeferred<AssetFileDescriptor?>()
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())

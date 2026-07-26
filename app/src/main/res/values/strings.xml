@@ -6,6 +6,11 @@
     <string name="default_time" translatable="false">0:00</string>
     <string name="upper_folder" translatable="false">..</string>
     <string name="artist_time" translatable="false">%s • %s</string>
+    <!-- Android Auto browse-tree categories (not translatable; stable labels) -->
+    <string name="auto_albums" translatable="false">Albums</string>
+    <string name="auto_artists" translatable="false">Artists</string>
+    <string name="auto_songs" translatable="false">Songs</string>
+    <string name="auto_playlists" translatable="false">Playlists</string>
 
     <!-- Translatable -->
     <eat-comment />

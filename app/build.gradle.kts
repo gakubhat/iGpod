@@ -310,7 +310,7 @@ aboutLibraries {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2025.05.00")
+    val composeBom = platform("androidx.compose:compose-bom:2025.09.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
     implementation("androidx.compose.material:material-icons-extended")
@@ -327,7 +327,6 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
-    implementation("androidx.mediarouter:mediarouter:1.8.1")
     implementation("io.github.nift4.mediastorecompat:mediastorecompat:1.0.0-alpha32")
     val media3Version = "1.10.1"
     implementation("androidx.media3:media3-common-ktx:$media3Version")
@@ -351,7 +350,7 @@ dependencies {
     "baselineProfile"(project(":baselineprofile"))
     // --- iGeeta sync ---
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.google.code.gson:gson:2.13.1")
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     // --- below does not apply to release builds ---
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
