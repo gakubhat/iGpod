@@ -133,7 +133,6 @@ class MainActivity : BaseActivity() {
     private lateinit var markIsFavoriteStatusIntentSender: ActivityResultLauncher<IntentSenderRequest>
     private var pendingPlaylistRequest: Bundle? = null
     private var pendingDeleteRequest: Bundle? = null
-    private var pendingMarkIsFavoriteRequest: Bundle? = null
 
     fun updateLibrary(smartScanFirst: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
                       then: (() -> Unit)? = null) {
@@ -165,9 +164,6 @@ class MainActivity : BaseActivity() {
         if (savedInstanceState?.containsKey("DeletePendingRequest") == true) {
             pendingDeleteRequest = savedInstanceState.getBundle("DeletePendingRequest")
         }
-        if (savedInstanceState?.containsKey("pendingMarkIsFavoriteRequest") == true) {
-            pendingMarkIsFavoriteRequest = savedInstanceState.getBundle("pendingMarkIsFavoriteRequest")
-        }
         intentSenderDelete =
             registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
                 val req = pendingDeleteRequest
@@ -188,12 +184,8 @@ class MainActivity : BaseActivity() {
             }
         markIsFavoriteStatusIntentSender =
             registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
-                val req = pendingMarkIsFavoriteRequest
-                    ?: throw IllegalStateException("pending favorite request is null")
-                pendingMarkIsFavoriteRequest = null
-                CoroutineScope(Dispatchers.Default).launch {
-                    doMarkIsFavoriteStatus(it.resultCode, req)
-                }
+                // iGpod DB-only: favorites no longer use the MediaStore write-request flow,
+                // so this callback is kept as a no-op safeguard if any stale caller fires it.
             }
         // TODO: should Activity.setMediaController() or Activity.setVolumeControlStream() be
         //  called? latter will probably not do particularly much, and former will
@@ -329,35 +321,22 @@ class MainActivity : BaseActivity() {
 
     fun markIsFavoriteStatus(songs: List<Entry>, favorite: Boolean) {
         CoroutineScope(Dispatchers.Default).launch {
-            val uri = gramophoneApplication.reader.playlistListFlow.map { it.find { p -> p is
-                    Favorite } }.first()?.id?.let {
-                    ContentUris.withAppendedId(@Suppress("deprecation")
-                    MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, it)
-                }
-            val data = Bundle().apply {
-                putParcelableArrayList("Songs", ArrayList(songs))
-                putParcelable("Uri", uri)
-                putBoolean("Favorite", favorite)
+            // iGpod DB-only: favorites are persisted as a binary rating (3 = favorite,
+            // 0 = not) in the local SQLite database. No MediaStore/.m3u playlist is used.
+            val db = com.igeeta.igpod.sync.SyncDatabase.getInstance(this@MainActivity)
+            for (song in songs) {
+                val path = song.locations.firstOrNull()?.toFile()?.absolutePath ?: continue
+                db.setLocalRating(path, if (favorite) 3 else 0)
             }
-            val token = if (uri != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                MediaStoreCompat.needRequestAdoption(this@MainActivity, uri)
-            } else if (uri != null) {
-                MediaStoreCompat.needRequestBytesWrite(this@MainActivity, uri)
-            } else {
-                MediaStoreCompat.needRequestCreate(this@MainActivity,
-                    ItemManipulator.getDefaultPlaylistFile(
-                        ItemManipulator.FAVORITES).path)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    this@MainActivity,
+                    if (favorite) R.string.favorite_added else R.string.favorite_removed,
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-            if (token != null) {
-                pendingMarkIsFavoriteRequest = data
-                val pendingIntent = MediaStoreCompat.createWriteRequest(this@MainActivity,
-                    listOf(token))
-                markIsFavoriteStatusIntentSender.launch(
-                    IntentSenderRequest.Builder(pendingIntent.intentSender).build()
-                )
-            } else {
-                doMarkIsFavoriteStatus(RESULT_OK, data)
-            }
+            // Refresh library so lists/favorites tab reflect the new rating.
+            updateLibrary()
         }
     }
 
@@ -372,60 +351,6 @@ class MainActivity : BaseActivity() {
                     this@MainActivity, RESULT_FIRST_USER,
                     null, bundle
                 )
-            }
-        }
-    }
-
-    private suspend fun doMarkIsFavoriteStatus(resultCode: Int, data: Bundle) {
-        if (resultCode == RESULT_OK) {
-            var uriIn = BundleCompat.getParcelable(data, "Uri", Uri::class.java)
-            if (uriIn != null) {
-                uriIn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    MediaStoreCompat.adoptFile(this@MainActivity, uriIn)
-                } else uriIn
-            }
-            val songs = BundleCompat.getParcelableArrayList(data, "Songs",
-                Entry::class.java)!!
-            val favorite = data.getBoolean("Favorite")
-            // Persist the heart as a binary rating (3 = favorite, 0 = not) so it
-            // survives re-sync and is pushed to the server on the next sync.
-            val db = com.igeeta.igpod.sync.SyncDatabase.getInstance(this)
-            for (song in songs) {
-                val path = song.locations.firstOrNull()?.toFile()?.absolutePath ?: continue
-                db.setLocalRating(path, if (favorite) 3 else 0)
-            }
-            try {
-                val uri = uriIn ?: ItemManipulator.createPlaylist(this,
-                    ItemManipulator.getDefaultPlaylistFile(ItemManipulator.FAVORITES))
-                val readback = if (uriIn != null) ItemManipulator.readbackPlaylist(this,
-                    uri) else PlaylistSerializer.Playlist.create()
-                val newSongs = readback.copy(entries = if (favorite) {
-                    readback.entries + songs
-                } else {
-                    readback.entries.filter { songs.find { candidate -> candidate.fuzzyEquals(it) } == null }
-                })
-                ItemManipulator.setPlaylistContent(this, uri, newSongs,
-                    uriIn == null)
-            } catch (e: Exception) {
-                Log.e("MainActivity", Log.getThrowableString(e)!!)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        getString(
-                            R.string.edit_favorites_failed,
-                            e.javaClass.name + ": " + e.message
-                        ),
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-        } else {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    this@MainActivity,
-                    getString(R.string.edit_favorites_failed, "$resultCode"),
-                    Toast.LENGTH_LONG
-                ).show()
             }
         }
     }
@@ -476,9 +401,6 @@ class MainActivity : BaseActivity() {
         }
         if (pendingDeleteRequest != null) {
             outState.putBundle("DeletePendingRequest", pendingDeleteRequest)
-        }
-        if (pendingMarkIsFavoriteRequest != null) {
-            outState.putBundle("pendingMarkIsFavoriteRequest", pendingMarkIsFavoriteRequest)
         }
     }
 

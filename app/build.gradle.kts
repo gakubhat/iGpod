@@ -107,7 +107,7 @@ android {
         // Stock AndroidX Media 1.10.1 requires minSdk 23, so we follow that floor.
         minSdk = 23
         targetSdk = 35
-        versionCode = 23 // 22 was a gplay-only hotfix; 23 is next after fork/minSdk23 rework
+        versionCode = 24 // 23 registered on Play (with shortcuts.xml/App Actions); 24 removes App Actions
         versionName = "1.1.0"
         if (releaseType != "Release" || versionNameSuffixOverride != null) {
             // by default the git commit hash is appended for non-release builds, however overrides

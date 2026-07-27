@@ -61,6 +61,10 @@ fun getAdapterType(adapter: AdapterFragment.BaseInterface<*>) =
             10
         }
 
+        adapter is SongAdapter && adapter.isSubFragment == R.id.raagas -> {
+            19
+        }
+
         adapter is SongAdapter && (adapter.isSubFragment == R.id.artist
                 || adapter.isSubFragment == R.id.album_artist) -> {
             11

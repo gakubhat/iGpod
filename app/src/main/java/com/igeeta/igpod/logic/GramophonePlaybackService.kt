@@ -78,7 +78,7 @@ import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.CommandButton
-import androidx.media3.session.MediaBrowser
+import androidx.media3.session.MediaController
 import androidx.media3.session.MediaConstants
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.LibraryResult
@@ -136,7 +136,8 @@ import kotlin.random.Random
  * It's using exoplayer2 as its player backend.
  */
 class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Listener,
-    MediaLibraryService.MediaLibrarySession.Callback, Player.Listener, AnalyticsListener,
+    MediaLibraryService.MediaLibrarySession.Callback, Player.Listener, MediaController.Listener,
+    AnalyticsListener,
     SharedPreferences.OnSharedPreferenceChangeListener {
 
     companion object {
@@ -179,7 +180,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
     private var mediaSession: MediaLibrarySession? = null
     val endedWorkaroundPlayer
         get() = mediaSession?.player as EndedWorkaroundPlayer?
-    private var controller: MediaBrowser? = null
+    private var controller: MediaController? = null
     lateinit var qb: QueueBoard
     private lateinit var customCommands: List<CommandButton>
     private lateinit var handler: Handler
@@ -438,7 +439,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                 )
                 .build()
         addSession(mediaSession!!)
-        controller = MediaBrowser.Builder(this, mediaSession!!.token).buildAsync().get()
+        controller = MediaController.Builder(this, mediaSession!!.token).buildAsync().get()
         controller!!.addListener(this)
         if (controller!!.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
             onAudioSessionIdChanged(controller!!.audioSessionId)

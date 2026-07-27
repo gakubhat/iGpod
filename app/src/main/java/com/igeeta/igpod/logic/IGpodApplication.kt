@@ -80,8 +80,6 @@ class IGpodApplication : Application(), SingletonImageLoader.Factory,
         }
     }
 
-    // iGpod: no minimum song-length filter (always 0).
-    val minSongLengthSecondsFlow = MutableStateFlow(0L)
     val recentlyAddedFilterSecondFlow = MutableStateFlow(1_209_600L)
     lateinit var reader: FlowReader
         private set
@@ -219,13 +217,7 @@ class IGpodApplication : Application(), SingletonImageLoader.Factory,
 
         reader = FlowReader(
             this,
-            if (BuildConfig.DISABLE_MEDIA_STORE_FILTER) MutableStateFlow(0) else
-                minSongLengthSecondsFlow,
-            MutableStateFlow(emptySet()),
-            MutableStateFlow(emptySet()),
-            MutableStateFlow(null), // iGpod: no enhanced album-cover reading
             recentlyAddedFilterSecondFlow,
-            useDatabase = true,
             syncDb = syncDb,
             dbRootPath = dbRootPath
         )

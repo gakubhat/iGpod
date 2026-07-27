@@ -40,6 +40,9 @@
 	    tools:ignore="ForegroundServicesPolicy" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
         android:minSdkVersion="34" />
+    <!-- iGeeta sync uses a dataSync foreground service (SyncService) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"
+        android:minSdkVersion="34" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Bluetooth device information -->
     <uses-permission android:name="android.permission.BLUETOOTH"
@@ -127,8 +130,6 @@
 
             <meta-data android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
-            <meta-data android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
         </activity>
 
         <activity
