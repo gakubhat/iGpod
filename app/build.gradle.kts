@@ -40,19 +40,11 @@ android {
 
     signingConfigs {
         create("release") {
-            if (resolveProperties("AKANE_RELEASE_KEY_ALIAS") != null) {
-                storeFile = file(resolveProperties("AKANE_RELEASE_STORE_FILE")!!)
-                storePassword = resolveProperties("AKANE_RELEASE_STORE_PASSWORD")
-                keyAlias = resolveProperties("AKANE_RELEASE_KEY_ALIAS")
-                keyPassword = resolveProperties("AKANE_RELEASE_KEY_PASSWORD")
-            }
-        }
-        create("release2") {
-            if (resolveProperties("AKANE2_RELEASE_KEY_ALIAS")!= null) {
-                storeFile = file(resolveProperties("AKANE2_RELEASE_STORE_FILE")!!)
-                storePassword = resolveProperties("AKANE2_RELEASE_STORE_PASSWORD")
-                keyAlias = resolveProperties("AKANE2_RELEASE_KEY_ALIAS")
-                keyPassword = resolveProperties("AKANE2_RELEASE_KEY_PASSWORD")
+            if (resolveProperties("igpodStoreFile") != null) {
+                storeFile = file(resolveProperties("igpodStoreFile")!!)
+                storePassword = resolveProperties("igpodStorePassword")
+                keyAlias = resolveProperties("igpodKeyAlias")
+                keyPassword = resolveProperties("igpodKeyPassword")
             }
         }
     }
@@ -108,7 +100,7 @@ android {
         minSdk = 23
         targetSdk = 35
         versionCode = 24 // 23 registered on Play (with shortcuts.xml/App Actions); 24 removes App Actions
-        versionName = "1.1.0"
+        versionName = "1.1.1"
         if (releaseType != "Release" || versionNameSuffixOverride != null) {
             // by default the git commit hash is appended for non-release builds, however overrides
             // will apply unconditionally
@@ -156,7 +148,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.getByName("release2")
+            signingConfig = signingConfigs.getByName("release")
             buildConfigField(
                 "boolean",
                 "IS_GOOGLEPLAY",
@@ -226,9 +218,8 @@ android {
             it.vcsInfo {
                 include = false
             }
-            if (project.hasProperty("AKANE_RELEASE_KEY_ALIAS") || project.hasProperty("signing2")) {
-                it.signingConfig = signingConfigs[if (project.hasProperty("signing2"))
-                    "release2" else "release"]
+            if (project.hasProperty("igpodStoreFile")) {
+                it.signingConfig = signingConfigs["release"]
             }
             it.isCrunchPngs = false // for reproducible builds TODO how much size impact does this have? where are the pngs from? can we use webp?
         }

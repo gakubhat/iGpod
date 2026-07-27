@@ -4,73 +4,6 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
-        <compositeConfiguration>
-          <compositeBuild compositeDefinitionSource="SCRIPT">
-            <builds>
-              <build path="$PROJECT_DIR$/media3" name="androidx.media3">
-                <projects>
-                  <project path="$PROJECT_DIR$/media3" />
-                  <project path="$PROJECT_DIR$/media3/demos/cast" />
-                  <project path="$PROJECT_DIR$/media3/demos/compose" />
-                  <project path="$PROJECT_DIR$/media3/demos/composition" />
-                  <project path="$PROJECT_DIR$/media3/demos/effect" />
-                  <project path="$PROJECT_DIR$/media3/demos/gl" />
-                  <project path="$PROJECT_DIR$/media3/demos/main" />
-                  <project path="$PROJECT_DIR$/media3/demos/session" />
-                  <project path="$PROJECT_DIR$/media3/demos/session_automotive" />
-                  <project path="$PROJECT_DIR$/media3/demos/session_service" />
-                  <project path="$PROJECT_DIR$/media3/demos/shortform" />
-                  <project path="$PROJECT_DIR$/media3/demos/surface" />
-                  <project path="$PROJECT_DIR$/media3/demos/transformer" />
-                  <project path="$PROJECT_DIR$/media3/docsamples" />
-                  <project path="$PROJECT_DIR$/media3/libraries/cast" />
-                  <project path="$PROJECT_DIR$/media3/libraries/common" />
-                  <project path="$PROJECT_DIR$/media3/libraries/common_ktx" />
-                  <project path="$PROJECT_DIR$/media3/libraries/container" />
-                  <project path="$PROJECT_DIR$/media3/libraries/database" />
-                  <project path="$PROJECT_DIR$/media3/libraries/datasource" />
-                  <project path="$PROJECT_DIR$/media3/libraries/datasource_cronet" />
-                  <project path="$PROJECT_DIR$/media3/libraries/datasource_okhttp" />
-                  <project path="$PROJECT_DIR$/media3/libraries/datasource_rtmp" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder_av1" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder_ffmpeg" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder_flac" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder_iamf" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder_midi" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder_mpegh" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder_opus" />
-                  <project path="$PROJECT_DIR$/media3/libraries/decoder_vp9" />
-                  <project path="$PROJECT_DIR$/media3/libraries/effect" />
-                  <project path="$PROJECT_DIR$/media3/libraries/exoplayer" />
-                  <project path="$PROJECT_DIR$/media3/libraries/exoplayer_dash" />
-                  <project path="$PROJECT_DIR$/media3/libraries/exoplayer_hls" />
-                  <project path="$PROJECT_DIR$/media3/libraries/exoplayer_ima" />
-                  <project path="$PROJECT_DIR$/media3/libraries/exoplayer_rtsp" />
-                  <project path="$PROJECT_DIR$/media3/libraries/exoplayer_smoothstreaming" />
-                  <project path="$PROJECT_DIR$/media3/libraries/exoplayer_workmanager" />
-                  <project path="$PROJECT_DIR$/media3/libraries/extractor" />
-                  <project path="$PROJECT_DIR$/media3/libraries/inspector" />
-                  <project path="$PROJECT_DIR$/media3/libraries/muxer" />
-                  <project path="$PROJECT_DIR$/media3/libraries/session" />
-                  <project path="$PROJECT_DIR$/media3/libraries/test_data" />
-                  <project path="$PROJECT_DIR$/media3/libraries/test_exoplayer_playback" />
-                  <project path="$PROJECT_DIR$/media3/libraries/test_proguard" />
-                  <project path="$PROJECT_DIR$/media3/libraries/test_session_common" />
-                  <project path="$PROJECT_DIR$/media3/libraries/test_session_current" />
-                  <project path="$PROJECT_DIR$/media3/libraries/test_utils" />
-                  <project path="$PROJECT_DIR$/media3/libraries/test_utils_robolectric" />
-                  <project path="$PROJECT_DIR$/media3/libraries/transformer" />
-                  <project path="$PROJECT_DIR$/media3/libraries/ui" />
-                  <project path="$PROJECT_DIR$/media3/libraries/ui_compose" />
-                  <project path="$PROJECT_DIR$/media3/libraries/ui_compose_material3" />
-                  <project path="$PROJECT_DIR$/media3/libraries/ui_leanback" />
-                  <project path="$PROJECT_DIR$/media3/testapps/controller" />
-                </projects>
-              </build>
-            </builds>
-          </compositeBuild>
-        </compositeConfiguration>
         <option name="testRunner" value="CHOOSE_PER_TEST" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
@@ -79,66 +12,7 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/baselineprofile" />
-            <option value="$PROJECT_DIR$/hificore" />
-            <option value="$PROJECT_DIR$/media3" />
-            <option value="$PROJECT_DIR$/media3/demos/cast" />
-            <option value="$PROJECT_DIR$/media3/demos/compose" />
-            <option value="$PROJECT_DIR$/media3/demos/composition" />
-            <option value="$PROJECT_DIR$/media3/demos/effect" />
-            <option value="$PROJECT_DIR$/media3/demos/gl" />
-            <option value="$PROJECT_DIR$/media3/demos/main" />
-            <option value="$PROJECT_DIR$/media3/demos/session" />
-            <option value="$PROJECT_DIR$/media3/demos/session_automotive" />
-            <option value="$PROJECT_DIR$/media3/demos/session_service" />
-            <option value="$PROJECT_DIR$/media3/demos/shortform" />
-            <option value="$PROJECT_DIR$/media3/demos/surface" />
-            <option value="$PROJECT_DIR$/media3/demos/transformer" />
-            <option value="$PROJECT_DIR$/media3/docsamples" />
-            <option value="$PROJECT_DIR$/media3/libraries/cast" />
-            <option value="$PROJECT_DIR$/media3/libraries/common" />
-            <option value="$PROJECT_DIR$/media3/libraries/common_ktx" />
-            <option value="$PROJECT_DIR$/media3/libraries/container" />
-            <option value="$PROJECT_DIR$/media3/libraries/database" />
-            <option value="$PROJECT_DIR$/media3/libraries/datasource" />
-            <option value="$PROJECT_DIR$/media3/libraries/datasource_cronet" />
-            <option value="$PROJECT_DIR$/media3/libraries/datasource_okhttp" />
-            <option value="$PROJECT_DIR$/media3/libraries/datasource_rtmp" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder_av1" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder_ffmpeg" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder_flac" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder_iamf" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder_midi" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder_mpegh" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder_opus" />
-            <option value="$PROJECT_DIR$/media3/libraries/decoder_vp9" />
-            <option value="$PROJECT_DIR$/media3/libraries/effect" />
-            <option value="$PROJECT_DIR$/media3/libraries/exoplayer" />
-            <option value="$PROJECT_DIR$/media3/libraries/exoplayer_dash" />
-            <option value="$PROJECT_DIR$/media3/libraries/exoplayer_hls" />
-            <option value="$PROJECT_DIR$/media3/libraries/exoplayer_ima" />
-            <option value="$PROJECT_DIR$/media3/libraries/exoplayer_rtsp" />
-            <option value="$PROJECT_DIR$/media3/libraries/exoplayer_smoothstreaming" />
-            <option value="$PROJECT_DIR$/media3/libraries/exoplayer_workmanager" />
-            <option value="$PROJECT_DIR$/media3/libraries/extractor" />
-            <option value="$PROJECT_DIR$/media3/libraries/inspector" />
-            <option value="$PROJECT_DIR$/media3/libraries/muxer" />
-            <option value="$PROJECT_DIR$/media3/libraries/session" />
-            <option value="$PROJECT_DIR$/media3/libraries/test_data" />
-            <option value="$PROJECT_DIR$/media3/libraries/test_exoplayer_playback" />
-            <option value="$PROJECT_DIR$/media3/libraries/test_proguard" />
-            <option value="$PROJECT_DIR$/media3/libraries/test_session_common" />
-            <option value="$PROJECT_DIR$/media3/libraries/test_session_current" />
-            <option value="$PROJECT_DIR$/media3/libraries/test_utils" />
-            <option value="$PROJECT_DIR$/media3/libraries/test_utils_robolectric" />
-            <option value="$PROJECT_DIR$/media3/libraries/transformer" />
-            <option value="$PROJECT_DIR$/media3/libraries/ui" />
-            <option value="$PROJECT_DIR$/media3/libraries/ui_compose" />
-            <option value="$PROJECT_DIR$/media3/libraries/ui_compose_material3" />
-            <option value="$PROJECT_DIR$/media3/libraries/ui_leanback" />
-            <option value="$PROJECT_DIR$/media3/testapps/controller" />
             <option value="$PROJECT_DIR$/misc" />
-            <option value="$PROJECT_DIR$/misc/alacdecoder" />
             <option value="$PROJECT_DIR$/misc/audiofxfwd" />
             <option value="$PROJECT_DIR$/misc/audiofxstub" />
             <option value="$PROJECT_DIR$/misc/audiofxstub2" />
