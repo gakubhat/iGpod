@@ -20,7 +20,6 @@ package uk.akane.libphonograph.reader
 import android.content.Context
 import android.os.Build
 import androidx.media3.common.MediaItem
-import androidx.media3.common.util.Log
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -83,12 +82,7 @@ class FlowReader(
     }
 
     private suspend fun maybeDoRead(
-        context: Context,
-        minSongLengthSeconds: Long,
-        blackListSet: Set<String>,
-        whiteListSet: Set<String>,
-        shouldUseEnhancedCoverReading: Boolean?,
-        libraryRootPath: String? = null
+        context: Context
     ) =
         // iGeeta: DB-only mode — read the library from the local SQLite database.
         DbReader.readFromDatabase(syncDb, dbRootPath, context)
@@ -132,12 +126,7 @@ class FlowReader(
             .conflateAndBlockWhenPaused()
             .mapLatest { _ ->
                 maybeDoRead(
-                    context,
-                    0,
-                    emptySet(),
-                    emptySet(),
-                    false,
-                    null
+                    context
                 )
             }
             .onEach {
