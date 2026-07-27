@@ -87,7 +87,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * URI format: `content://com.igeeta.igpod.albumart/{type}/{id}`
  * where `type` is "song" or "album" and `id` is a song ID.
  */
-class GramophoneAlbumArtProvider : ContentProvider() {
+class IgpodAlbumArtProvider : ContentProvider() {
 
     companion object {
         private const val TAG = "GramophoneArtProvider"
@@ -96,7 +96,7 @@ class GramophoneAlbumArtProvider : ContentProvider() {
         const val PROVIDER_AUTHORITY = "${BuildConfig.APPLICATION_ID}.albumart"
 
         /**
-         * Builds a `content://` URI pointing to [GramophoneAlbumArtProvider].
+         * Builds a `content://` URI pointing to [IgpodAlbumArtProvider].
          *
          * @param id        the ID of any song (!!! not album ID)
          * @param songFile  the song file's path
@@ -111,7 +111,7 @@ class GramophoneAlbumArtProvider : ContentProvider() {
                 .build()
 
         /**
-         * Builds a `content://` URI pointing to [GramophoneAlbumArtProvider].
+         * Builds a `content://` URI pointing to [IgpodAlbumArtProvider].
          *
          * @param id the song ID
          */

@@ -36,7 +36,7 @@ import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.igeeta.igpod.logic.IGpodApplication
-import com.igeeta.igpod.logic.GramophonePlaybackService
+import com.igeeta.igpod.logic.IgpodPlaybackService
 import com.igeeta.igpod.logic.utils.LifecycleCallbackListImpl
 import java.util.concurrent.ExecutionException
 
@@ -59,7 +59,7 @@ class MediaControllerViewModel(application: Application) : AndroidViewModel(appl
 
     override fun onStart(owner: LifecycleOwner) {
         val sessionToken =
-            SessionToken(context, ComponentName(context, GramophonePlaybackService::class.java))
+            SessionToken(context, ComponentName(context, IgpodPlaybackService::class.java))
         val lc = LifecycleHost()
         controllerLifecycle = lc
         controllerFuture =

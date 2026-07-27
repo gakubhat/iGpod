@@ -51,7 +51,7 @@ import androidx.media3.common.C
 import androidx.media3.common.DeviceInfo
 import androidx.media3.common.HeartRating
 import androidx.media3.common.IllegalSeekPositionException
-import com.igeeta.igpod.logic.GramophoneAlbumArtProvider
+import com.igeeta.igpod.logic.IgpodAlbumArtProvider
 import com.igeeta.igpod.sync.SyncDatabase
 import com.igeeta.igpod.sync.SyncedTrack
 import androidx.media3.common.MediaItem
@@ -116,8 +116,8 @@ import com.igeeta.igpod.logic.utils.Flags
 import com.igeeta.igpod.logic.utils.LastPlayedManager
 import com.igeeta.igpod.logic.utils.MediaItemList
 import com.igeeta.igpod.logic.utils.exoplayer.EndedWorkaroundPlayer
-import com.igeeta.igpod.logic.utils.exoplayer.GramophoneExtractorsFactory
-import com.igeeta.igpod.logic.utils.exoplayer.GramophoneMediaSourceFactory
+import com.igeeta.igpod.logic.utils.exoplayer.IgpodExtractorsFactory
+import com.igeeta.igpod.logic.utils.exoplayer.IgpodMediaSourceFactory
 import com.igeeta.igpod.ui.MainActivity
 import org.nift4.mediastorecompat.MediaStoreCompat
 import uk.akane.libphonograph.dynamicitem.Favorite
@@ -132,10 +132,10 @@ import kotlin.random.Random
 
 
 /**
- * [GramophonePlaybackService] is a server service.
+ * [IgpodPlaybackService] is a server service.
  * It's using exoplayer2 as its player backend.
  */
-class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Listener,
+class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener,
     MediaLibraryService.MediaLibrarySession.Callback, Player.Listener, MediaController.Listener,
     AnalyticsListener,
     SharedPreferences.OnSharedPreferenceChangeListener {
@@ -296,9 +296,9 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                 .setEnableDecoderFallback(true)
                 .setEnableAudioTrackPlaybackParams(true)
                 .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON),
-                GramophoneMediaSourceFactory(
+                IgpodMediaSourceFactory(
                     DefaultDataSource.Factory(this),
-                    GramophoneExtractorsFactory().also {
+                    IgpodExtractorsFactory().also {
                         it.setConstantBitrateSeekingEnabled(true)
                         it.setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
                     })
@@ -346,7 +346,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                     // Coil-based bitmap loader to reuse Coil's caching and to make sure we use
                     // the same cover art as the rest of the app, ie MediaStore's cover
 
-                    private val limit by lazy { MediaSession.getBitmapDimensionLimit(this@GramophonePlaybackService) }
+                    private val limit by lazy { MediaSession.getBitmapDimensionLimit(this@IgpodPlaybackService) }
 
                     // the suppression is correct, we want identity of the byte array as it will
                     // stay the same over one song's lifetime
@@ -354,7 +354,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                     override fun decodeBitmap(data: ByteArray): ListenableFuture<Bitmap> {
                         return CallbackToFutureAdapter.getFuture { completer ->
                             imageLoader.enqueue(
-                                ImageRequest.Builder(this@GramophonePlaybackService)
+                                ImageRequest.Builder(this@IgpodPlaybackService)
                                     .data(data)
                                     .memoryCacheKey(data.hashCode().toString())
                                     .size(limit, limit)
@@ -390,7 +390,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                     ): ListenableFuture<Bitmap> {
                         return CallbackToFutureAdapter.getFuture { completer ->
                             imageLoader.enqueue(
-                                ImageRequest.Builder(this@GramophonePlaybackService)
+                                ImageRequest.Builder(this@IgpodPlaybackService)
                                     .data(uri)
                                     .size(limit, limit)
                                     .allowHardware(false)
@@ -575,10 +575,10 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                 MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, it)
             }
             val token = if (uriIn != null) {
-                MediaStoreCompat.needRequestBytesWrite(this@GramophonePlaybackService,
+                MediaStoreCompat.needRequestBytesWrite(this@IgpodPlaybackService,
                     uriIn)
             } else {
-                MediaStoreCompat.needRequestCreate(this@GramophonePlaybackService,
+                MediaStoreCompat.needRequestCreate(this@IgpodPlaybackService,
                     ItemManipulator.getDefaultPlaylistFile(
                         ItemManipulator.FAVORITES).path)
             }
@@ -586,17 +586,17 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
             if (token == null) {
                 try {
                     val uri = uriIn ?: ItemManipulator.createPlaylist(
-                        this@GramophonePlaybackService, ItemManipulator
+                        this@IgpodPlaybackService, ItemManipulator
                             .getDefaultPlaylistFile(ItemManipulator.FAVORITES))
                     val readback = if (uriIn != null) ItemManipulator.readbackPlaylist(
-                        this@GramophonePlaybackService, uri) else
+                        this@IgpodPlaybackService, uri) else
                             PlaylistSerializer.Playlist.create()
                     val newSongs = if (rating.isHeart) {
                         readback.entries + song
                     } else {
                         readback.entries.filter { !song.fuzzyEquals(it) }
                     }
-                    ItemManipulator.setPlaylistContent(this@GramophonePlaybackService, uri,
+                    ItemManipulator.setPlaylistContent(this@IgpodPlaybackService, uri,
                         readback.copy(entries = newSongs), uriIn == null)
                 } catch (e: Exception) {
                     Log.e(TAG, "failed to set $rating on $mediaId", e)
@@ -609,18 +609,18 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                 if (!supportsNotificationPermission() || hasNotificationPermission()) {
                     @SuppressLint("MissingPermission") // false positive
                     nm.notify(FAVE_ID, NotificationCompat.Builder(
-                        this@GramophonePlaybackService, NOTIFY_CHANNEL_ID).apply {
+                        this@IgpodPlaybackService, NOTIFY_CHANNEL_ID).apply {
                         setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                         setAutoCancel(true)
                         setCategory(NotificationCompat.CATEGORY_ERROR)
                         setSmallIcon(R.drawable.ic_error)
-                        setContentTitle(this@GramophonePlaybackService.getString(R.string.favorite_failed_title))
-                        setContentText(this@GramophonePlaybackService.getString(R.string.favorite_failed_text))
+                        setContentTitle(this@IgpodPlaybackService.getString(R.string.favorite_failed_title))
+                        setContentText(this@IgpodPlaybackService.getString(R.string.favorite_failed_text))
                         setContentIntent(
                             PendingIntent.getActivity(
-                                this@GramophonePlaybackService,
+                                this@IgpodPlaybackService,
                                 PENDING_INTENT_FAVE_ID,
-                                Intent(this@GramophonePlaybackService, MainActivity::class.java)
+                                Intent(this@IgpodPlaybackService, MainActivity::class.java)
                                     .putExtra(MainActivity.FAVORITE_ENTRY, song)
                                     .putExtra(MainActivity.FAVORITE_STATE, rating.isHeart),
                                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
@@ -1099,7 +1099,7 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         .build()
 
     // Builds a playable MediaItem for Android Auto from a SyncedTrack. Uses a
-    // content:// artwork URI (served by GramophoneAlbumArtProvider) so the head
+    // content:// artwork URI (served by IgpodAlbumArtProvider) so the head
     // unit can load art across process boundaries (app-private file:// won't work).
     private fun trackItem(track: SyncedTrack): MediaItem {
         val id = track.filePath.hashCode().toLong()
@@ -1143,9 +1143,9 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
         return if (artworkRel != null) {
             // Cross-process-safe: head unit can't read app-private file://,
             // so route server art through the exported album-art content provider.
-            GramophoneAlbumArtProvider.buildArtworkUri(artworkRel)
+            IgpodAlbumArtProvider.buildArtworkUri(artworkRel)
         } else {
-            GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
+            IgpodAlbumArtProvider.buildSongUri(id, fullPath)
         }
     }
 
@@ -1384,13 +1384,13 @@ class GramophonePlaybackService : MediaLibraryService(), MediaSessionService.Lis
                 setAutoCancel(true)
                 setCategory(NotificationCompat.CATEGORY_ERROR)
                 setSmallIcon(R.drawable.ic_error)
-                setContentTitle(this@GramophonePlaybackService.getString(R.string.fgs_failed_title))
-                setContentText(this@GramophonePlaybackService.getString(R.string.fgs_failed_text))
+                setContentTitle(this@IgpodPlaybackService.getString(R.string.fgs_failed_title))
+                setContentText(this@IgpodPlaybackService.getString(R.string.fgs_failed_text))
                 setContentIntent(
                     PendingIntent.getActivity(
-                        this@GramophonePlaybackService,
+                        this@IgpodPlaybackService,
                         PENDING_INTENT_NOTIFY_ID,
-                        Intent(this@GramophonePlaybackService, MainActivity::class.java)
+                        Intent(this@IgpodPlaybackService, MainActivity::class.java)
                             .putExtra(MainActivity.PLAYBACK_AUTO_START_FOR_FGS, true),
                         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                     )

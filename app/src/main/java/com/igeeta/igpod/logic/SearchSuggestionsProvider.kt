@@ -96,7 +96,7 @@ class SearchSuggestionsProvider : ContentProvider() {
         // TODO support focus and sub queries (see MainActivity)
         return if (text == "") list else list.filter {
             // TODO sort results by match quality? (using raw=natural order)
-            // TODO this is copied directly from SearchFragment and GramophonePlaybackService,
+            // TODO this is copied directly from SearchFragment and IgpodPlaybackService,
             //  it should be deduplicated
             val isMatchingTitle =
                 it.mediaMetadata.title?.contains(text, true) == true

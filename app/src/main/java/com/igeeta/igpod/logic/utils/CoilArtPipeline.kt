@@ -55,7 +55,7 @@ import kotlinx.coroutines.job
 import okio.Buffer
 import okio.buffer
 import okio.source
-import com.igeeta.igpod.logic.GramophoneAlbumArtProvider
+import com.igeeta.igpod.logic.IgpodAlbumArtProvider
 import com.igeeta.igpod.logic.hasImagePermission
 import com.igeeta.igpod.logic.hasScopedStorageV1
 import com.igeeta.igpod.logic.hasScopedStorageWithMediaTypes
@@ -94,7 +94,7 @@ object CoilArtPipeline {
     class AlbumThumbnailMapper : Mapper<Uri, AlbumThumbnailData> {
         override fun map(data: Uri, options: Options): AlbumThumbnailData? {
             return if (data.scheme == ContentResolver.SCHEME_CONTENT &&
-                data.authority == GramophoneAlbumArtProvider.PROVIDER_AUTHORITY) {
+                data.authority == IgpodAlbumArtProvider.PROVIDER_AUTHORITY) {
                 if (data.pathSegments.first() != "album")
                     throw IllegalArgumentException("Invalid uri: $data")
                 AlbumThumbnailData(ContentUris.withAppendedId(
@@ -217,7 +217,7 @@ object CoilArtPipeline {
     class ThumbnailMapper : Mapper<Uri, LoadThumbnailData> {
         override fun map(data: Uri, options: Options): LoadThumbnailData? {
             return if (data.scheme == ContentResolver.SCHEME_CONTENT &&
-                data.authority == GramophoneAlbumArtProvider.PROVIDER_AUTHORITY &&
+                data.authority == IgpodAlbumArtProvider.PROVIDER_AUTHORITY &&
                 data.pathSegments.first() == "song" &&
                 isSmallSize(options.context, options.size)) {
                 LoadThumbnailData(ContentUris.withAppendedId(
@@ -282,7 +282,7 @@ object CoilArtPipeline {
     class AudioCoverMapper : Mapper<Uri, LoadAudioCoverData> {
         override fun map(data: Uri, options: Options): LoadAudioCoverData? {
             return if (data.scheme == ContentResolver.SCHEME_CONTENT &&
-                data.authority == GramophoneAlbumArtProvider.PROVIDER_AUTHORITY &&
+                data.authority == IgpodAlbumArtProvider.PROVIDER_AUTHORITY &&
                 data.pathSegments.first() == "song") {
                 LoadAudioCoverData(data.pathSegments[1].toLong(),
                     // Security: query parameters are removed before album art provider uses Uri

@@ -82,7 +82,7 @@
             android:taskAffinity="com.igeeta.igpod.crashLog" />
 
         <service
-            android:name=".logic.GramophonePlaybackService"
+            android:name=".logic.IgpodPlaybackService"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback"
             tools:ignore="ExportedService">
@@ -228,7 +228,7 @@
             MediaSession queue).
         -->
         <provider
-            android:name=".logic.GramophoneAlbumArtProvider"
+            android:name=".logic.IgpodAlbumArtProvider"
             android:authorities="${applicationId}.albumart"
             android:exported="true"
             android:grantUriPermissions="true"

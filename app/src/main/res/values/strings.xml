@@ -116,7 +116,7 @@
     <!-- Used in place of the playlist if the playlist can't be found unexpectedly -->
     <string name="unknown_playlist">Unknown playlist</string>
     <string name="gramophone_crashed" translatable="false">Crash log</string>
-    <string name="crash_gramophone_version" translatable="false">Gramophone version</string>
+    <string name="crash_gramophone_version" translatable="false">iGpod version</string>
     <string name="crash_phone_model" translatable="false">Model</string>
     <string name="crash_phone_brand" translatable="false">Brand</string>
     <string name="crash_sdk_level" translatable="false">SDK Level</string>
@@ -667,7 +667,6 @@
     playback path of active playback. -->
     <string name="device_type_ble_broadcast">Bluetooth LE Broadcast</string>
     <!-- Shown in audio file preview to move from preview which is a simple dialog, to full app -->
-    <string name="open_in_gramophone">Open in Gramophone</string>
     <!-- Settings toggle in lyrics UI to remove spaces at start and end of text. Subtext -->
     <!-- Error message if file can't be played for any reason -->
     <string name="cannot_play_file">Cannot play this file</string>
@@ -680,13 +679,13 @@
     <!-- Showing the song's bit rate in detail UI if it can't be determined -->
     <string name="bitrate_unknown">Unknown bitrate</string>
     <!-- Explainer in dialog when user clicks "Package type" field in about screen -->
-    <string name="package_type_explainer">Gramophone APKs can be created by anyone, because Gramophone is open source. To help remembering where an APK came from, Gramophone provides the package type.\n\nThe most common type is Release, which is obtained from F-Droid, Google Play, GitHub or IzzyOnDroid.\nThe CI package type refers to automated builds made for every commit on GitHub. These builds may be unstable.\nFor other package types, the name should give a reasonable hint to where the APK is from.</string>
+    <string name="package_type_explainer">iGpod APKs can be created by anyone, because iGpod is open source. To help remembering where an APK came from, iGpod provides the package type.\n\nThe most common type is Release, which is obtained from Google Play or GitHub.\nThe CI package type refers to automated builds made for every commit on GitHub. These builds may be unstable.\nFor other package types, the name should give a reasonable hint to where the APK is from.</string>
     <!-- Row in about screen which will show open source licenses of Gramophone and other libraries when clicked -->
     <string name="settings_open_source_licenses">Open source licenses</string>
     <!-- Title of crash report screen -->
     <string name="oh_no">Oh no!</string>
     <!-- Explainer of crash report screen -->
-    <string name="gramophone_crashed_explainer2">Gramophone crashed :(\n\nPlease send me a bug report so issues like what lead to this crash can be fixed!\n\nEach situation as unique as music, without your help it is likely this bug will <b>NOT</b> be fixed!</string>
+    <string name="gramophone_crashed_explainer2">iGpod crashed :(\\n\\nPlease send a bug report so issues like what lead to this crash can be fixed!\\n\\nEach situation as unique as music, without your help it is likely this bug will <b>NOT</b> be fixed!</string>
     <!-- Positive action button in crash report screen -->
     <string name="send_email">Send email</string>
     <!-- Error message if sending crash report failed -->
@@ -967,7 +966,7 @@
     <!-- Dialog title in crash reporter screen when user pressed "Send email" and we're asking for details -->
     <string name="crash_report">Crash report</string>
     <!-- Dialog explainer in crash reporter screen when user pressed "Send email" and we're asking for details -->
-    <string name="what_were_you_doing">What were you doing in Gramophone when this crash happened? Please add as many details as possible to increase the chances of me being able to fix the problem.\n\nPlease note that English is preferred for bug reports, but I will try to use machine translation if you send bug reports in another language.</string>
+    <string name="what_were_you_doing">What were you doing in iGpod when this crash happened? Please add as many details as possible to increase the chances of the problem being fixed.\\n\\nPlease note that English is preferred for bug reports, but machine translation can be used if you send bug reports in another language.</string>
     <!-- Used if no email program is installed -->
     <string name="email_clipboard">Copied e-mail address and text to clipboard</string>
     <!-- Settings item to create .txt file with app logs, used for diagnosing issues -->
@@ -1004,7 +1003,7 @@
     <!-- Title used for dialog explaining when to use refresh feature and when to use quick refresh -->
     <string name="did_you_know">Did you know…</string>
     <!-- Explainer used for dialog explaining when to use refresh feature and when to use quick refresh -->
-    <string name="refresh_did_you_know">Gramophone asks for an updated song list on every app start, and while Gramophone is running, it will detect new media automatically as well. This \"Refresh\" button will not reload the media in Gramophone, instead, it will ask your system to re-scan all files from all attached permanent storage devices (this is why it takes some time). This means, unless your system or other apps are malfunctioning, you will never need to use this feature.\n\nMissing some songs? Make sure to check "Settings > Behaviour" for the minimum length filter and folder blacklist, and confirm these settings are set to an expected value. For more possible reasons, please check our FAQ.</string>
+    <string name="refresh_did_you_know">iGpod asks for an updated song list on every app start, and while iGpod is running, it will detect new media automatically as well. This \"Refresh\" button will not reload the media in iGpod, instead, it will ask your system to re-scan all files from all attached permanent storage devices (this is why it takes some time). This means, unless your system or other apps are malfunctioning, you will never need to use this feature.\n\nMissing some songs? Make sure to check \"Settings > Behaviour\" for the minimum length filter and folder blacklist, and confirm these settings are set to an expected value. For more possible reasons, please check our FAQ.</string>
     <!-- Error message when renaming playlist upon user request failed unexpectedly -->
     <string name="rename_failed_playlist">Failed to rename playlist: %s</string>
     <!-- Text field hint used for dialog where playlist is renamed or created -->

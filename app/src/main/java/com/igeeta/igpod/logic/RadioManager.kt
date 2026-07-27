@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.Environment
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import com.igeeta.igpod.logic.GramophoneAlbumArtProvider
+import com.igeeta.igpod.logic.IgpodAlbumArtProvider
 import com.igeeta.igpod.sync.SyncDatabase
 import com.igeeta.igpod.sync.SyncedRaga
 import com.igeeta.igpod.sync.SyncedTrack
@@ -219,7 +219,7 @@ class RadioManager(private val context: Context) {
         val artworkUri = if (artworkFile != null) {
             android.net.Uri.fromFile(artworkFile)
         } else {
-            GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
+            IgpodAlbumArtProvider.buildSongUri(id, fullPath)
         }
 
         return MediaItem.Builder()

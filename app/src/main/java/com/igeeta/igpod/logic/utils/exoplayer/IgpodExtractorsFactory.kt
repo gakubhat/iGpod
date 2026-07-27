@@ -21,7 +21,7 @@ import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Suppress("unused")
-class GramophoneExtractorsFactory : ExtractorsFactory {
+class IgpodExtractorsFactory : ExtractorsFactory {
     companion object {
         private val DEFAULT_EXTRACTOR_ORDER =
             intArrayOf(5, 4, 12, 8, 3, 10, 9, 11, 6, 2, 0, 1, 7, 16, 15)
@@ -47,49 +47,49 @@ class GramophoneExtractorsFactory : ExtractorsFactory {
     private var mp3Flags = 0
 
     @Synchronized
-    fun setConstantBitrateSeekingEnabled(constantBitrateSeekingEnabled: Boolean): GramophoneExtractorsFactory {
+    fun setConstantBitrateSeekingEnabled(constantBitrateSeekingEnabled: Boolean): IgpodExtractorsFactory {
         this.constantBitrateSeekingEnabled = constantBitrateSeekingEnabled
         return this
     }
 
     @Synchronized
-    fun setConstantBitrateSeekingAlwaysEnabled(constantBitrateSeekingAlwaysEnabled: Boolean): GramophoneExtractorsFactory {
+    fun setConstantBitrateSeekingAlwaysEnabled(constantBitrateSeekingAlwaysEnabled: Boolean): IgpodExtractorsFactory {
         this.constantBitrateSeekingAlwaysEnabled = constantBitrateSeekingAlwaysEnabled
         return this
     }
 
     @Synchronized
-    fun setAdtsExtractorFlags(flags: Int): GramophoneExtractorsFactory {
+    fun setAdtsExtractorFlags(flags: Int): IgpodExtractorsFactory {
         this.adtsFlags = flags
         return this
     }
 
     @Synchronized
-    fun setFlacExtractorFlags(flags: Int): GramophoneExtractorsFactory {
+    fun setFlacExtractorFlags(flags: Int): IgpodExtractorsFactory {
         this.flacFlags = flags
         return this
     }
 
     @Synchronized
-    fun setMatroskaExtractorFlags(flags: Int): GramophoneExtractorsFactory {
+    fun setMatroskaExtractorFlags(flags: Int): IgpodExtractorsFactory {
         this.matroskaFlags = flags
         return this
     }
 
     @Synchronized
-    fun setMp4ExtractorFlags(flags: Int): GramophoneExtractorsFactory {
+    fun setMp4ExtractorFlags(flags: Int): IgpodExtractorsFactory {
         this.mp4Flags = flags
         return this
     }
 
     @Synchronized
-    fun setFragmentedMp4ExtractorFlags(flags: Int): GramophoneExtractorsFactory {
+    fun setFragmentedMp4ExtractorFlags(flags: Int): IgpodExtractorsFactory {
         this.fragmentedMp4Flags = flags
         return this
     }
 
     @Synchronized
-    fun setMp3ExtractorFlags(flags: Int): GramophoneExtractorsFactory {
+    fun setMp3ExtractorFlags(flags: Int): IgpodExtractorsFactory {
         this.mp3Flags = flags
         return this
     }

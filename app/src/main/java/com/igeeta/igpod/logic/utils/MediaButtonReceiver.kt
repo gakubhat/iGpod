@@ -31,9 +31,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.media3.common.util.Log
 import androidx.media3.session.MediaButtonReceiver
 import com.igeeta.igpod.R
-import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.NOTIFY_CHANNEL_ID
-import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.NOTIFY_ID
-import com.igeeta.igpod.logic.GramophonePlaybackService.Companion.PENDING_INTENT_NOTIFY_ID
+import com.igeeta.igpod.logic.IgpodPlaybackService.Companion.NOTIFY_CHANNEL_ID
+import com.igeeta.igpod.logic.IgpodPlaybackService.Companion.NOTIFY_ID
+import com.igeeta.igpod.logic.IgpodPlaybackService.Companion.PENDING_INTENT_NOTIFY_ID
 import com.igeeta.igpod.logic.hasNotificationPermission
 import com.igeeta.igpod.logic.mayThrowForegroundServiceStartNotAllowed
 import com.igeeta.igpod.logic.mayThrowForegroundServiceStartNotAllowedMiui

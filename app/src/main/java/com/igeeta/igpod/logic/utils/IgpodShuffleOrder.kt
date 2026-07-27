@@ -42,7 +42,7 @@ class CircularShuffleOrder private constructor(
     }
 
     companion object {
-        private const val TAG = "GramophoneShuffleOrder"
+        private const val TAG = "IgpodShuffleOrder"
         private fun calculateShuffledList(offset: Int, length: Int, random: Random): IntArray {
             val shuffled = IntArray(length)
             var swapIndex: Int

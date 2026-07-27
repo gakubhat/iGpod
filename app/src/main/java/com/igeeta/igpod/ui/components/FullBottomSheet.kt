@@ -95,7 +95,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.igeeta.igpod.R
-import com.igeeta.igpod.logic.GramophonePlaybackService
+import com.igeeta.igpod.logic.IgpodPlaybackService
 import com.igeeta.igpod.logic.dpToPx
 import com.igeeta.igpod.logic.getBooleanStrict
 import com.igeeta.igpod.logic.getIntStrict
@@ -241,7 +241,7 @@ class FullBottomSheet
         prefs.registerOnSharedPreferenceChangeListener(this)
         activity.controllerViewModel.customCommandListeners.addCallback(activity.lifecycle) { _, command, _ ->
             when (command.customAction) {
-                GramophonePlaybackService.SERVICE_TIMER_CHANGED -> updateTimer()
+                IgpodPlaybackService.SERVICE_TIMER_CHANGED -> updateTimer()
 
                 else -> {
                     return@addCallback Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))

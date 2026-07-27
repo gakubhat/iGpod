@@ -3,7 +3,7 @@ package com.igeeta.igpod.sync
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import com.igeeta.igpod.logic.GramophoneAlbumArtProvider
+import com.igeeta.igpod.logic.IgpodAlbumArtProvider
 import org.json.JSONArray
 import uk.akane.libphonograph.items.Album
 import uk.akane.libphonograph.items.Artist
@@ -166,7 +166,7 @@ object DbReader {
             Uri.fromFile(artFile)
         } else {
             // Fallback: embedded art inside the MP3 file, served via content provider.
-            GramophoneAlbumArtProvider.buildSongUri(id, fullPath)
+            IgpodAlbumArtProvider.buildSongUri(id, fullPath)
         }
     }
 

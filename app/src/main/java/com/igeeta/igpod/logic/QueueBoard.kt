@@ -43,7 +43,7 @@ private const val QUEUE_EXPIRY_MS = 10 * 36000000 // 10 hrs
  * Queues are ordered most recent modification,
  */
 class QueueBoard(
-    private val player: GramophonePlaybackService,
+    private val player: IgpodPlaybackService,
     val masterQueues: MutableList<MultiQueueObject> = mutableListOf(),
     queues: MutableList<MultiQueueObject> = ArrayList(),
 ) {

@@ -34,7 +34,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.Log
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
-import com.igeeta.igpod.logic.GramophoneAlbumArtProvider
+import com.igeeta.igpod.logic.IgpodAlbumArtProvider
 import com.igeeta.igpod.logic.getFile
 import com.igeeta.igpod.logic.hasAudioPermission
 import com.igeeta.igpod.logic.hasImagePermission
@@ -384,7 +384,7 @@ internal object Reader {
                 val dateTakenDay = if (hasImprovedMediaStore()) {
                     dateTakenParsed?.dayOfMonth
                 } else null
-                val imgUri = GramophoneAlbumArtProvider.buildSongUri(id, pathFile)
+                val imgUri = IgpodAlbumArtProvider.buildSongUri(id, pathFile)
                 if (cdTrackNumber != null && trackNumber == null) {
                     cdTrackNumber.toIntOrNull()?.let {
                         trackNumber = it
@@ -562,7 +562,7 @@ internal object Reader {
             coverCache?.get(it.id)?.let { p ->
                 // if this is false, folder contains >1 albums
                 if (p.second.albumId == it.id) {
-                    it.cover = GramophoneAlbumArtProvider.buildAlbumUri(p.second
+                    it.cover = IgpodAlbumArtProvider.buildAlbumUri(p.second
                         .songList.first().requireMediaStoreId(), p.second
                         .songList.first().getFile()!!)
                 }
