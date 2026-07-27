@@ -176,8 +176,10 @@ class IgpodAlbumArtProvider : ContentProvider() {
             }
             context.imageLoader.execute(
                 ImageRequest.Builder(context)
-                // Security: Remove query parameters as they should only be used for trusted data
-                .data(if (uri.query != null) uri.buildUpon().clearQuery().build() else uri)
+                // Keep the full Uri (including the songFile query) so CoilArtPipeline's
+                // mappers can resolve embedded art. songFile is only ever set by our own
+                // buildSongUri/buildAlbumUri for trusted, app-owned artwork.
+                .data(uri)
                 .let {
                     // size will be used to decide if underlying file is small or full size, and if
                     // we can't use the dummy decoder, we will also get the data resized by Coil.

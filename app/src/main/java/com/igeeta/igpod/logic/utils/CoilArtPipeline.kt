@@ -28,6 +28,7 @@ import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.Environment
 import android.os.OperationCanceledException
+import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import androidx.core.net.toUri
 import androidx.media3.common.util.Log
@@ -219,6 +220,7 @@ object CoilArtPipeline {
             return if (data.scheme == ContentResolver.SCHEME_CONTENT &&
                 data.authority == IgpodAlbumArtProvider.PROVIDER_AUTHORITY &&
                 data.pathSegments.first() == "song" &&
+                data.toAndroidUri().getQueryParameter("songFile") == null &&
                 isSmallSize(options.context, options.size)) {
                 LoadThumbnailData(ContentUris.withAppendedId(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -301,18 +303,32 @@ object CoilArtPipeline {
             return Fetcher {
                 val uri = ContentUris.withAppendedId(MediaStore.Audio.Media
                     .EXTERNAL_CONTENT_URI, data.id)
-                MediaStoreCompat.openAssetFileDescriptor(options.context,
-                    uri, "r")!!.use { afd ->
+                // iGpod is DB-only: the path-segment id is a filePath hash, not a real
+                // MediaStore audio id. When the trusted songFile query param is present,
+                // resolve the real file through MediaStore (scoped-storage safe) to read
+                // its embedded picture; otherwise fall back to the MediaStore id path
+                // (Gramophone behavior).
+                val afd = if (data.songFile != null && data.songFile.exists() &&
+                    data.songFile.length() > 0L) {
+                    val realUri = MediaStoreCompat.getMediaUriForFile(
+                        options.context, data.songFile.absolutePath)
+                    MediaStoreCompat.openAssetFileDescriptor(options.context,
+                        realUri, "r")
+                } else {
+                    MediaStoreCompat.openAssetFileDescriptor(options.context,
+                        uri, "r")!!
+                }
+                afd?.use {
                     val retriever = MediaMetadataRetriever()
                     try {
-                        if (afd.declaredLength == AssetFileDescriptor.UNKNOWN_LENGTH &&
-                            afd.startOffset == 0L
+                        if (it.declaredLength == AssetFileDescriptor.UNKNOWN_LENGTH &&
+                            it.startOffset == 0L
                         )
-                            retriever.setDataSource(afd.fileDescriptor)
+                            retriever.setDataSource(it.fileDescriptor)
                         else
                             retriever.setDataSource(
-                                afd.fileDescriptor, afd.startOffset,
-                                afd.length
+                                it.fileDescriptor, it.startOffset,
+                                it.length
                             )
                         retriever.embeddedPicture?.let { raw ->
                             return@Fetcher SourceFetchResult(

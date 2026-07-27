@@ -189,10 +189,6 @@
     someDeveloperC (click for more!)" and clicking opens credits screen -->
     <!-- Accessibility name for bars animation on a song in a list, showing this is the playling song -->
     <string name="now_playing">Now playing</string>
-    <!-- In appearance settings, change between album based color and system wide color. Subtext -->
-    <string name="settings_content_based_color_summary">Enable album based color generation</string>
-    <!-- In appearance settings, change between album based color and system wide color. Title -->
-    <string name="settings_content_based_color">Content based colors</string>
     <!-- In about screen, explain where the app APK is from (Google Play, GitHub, etc) -->
     <string name="settings_package_type">Package type</string>
     <!-- Shown if user clicks on lyrics icon but the song doesn't contain any lyrics in metadata -->
