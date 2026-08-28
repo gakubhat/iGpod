@@ -45,3 +45,18 @@
     onMoreData(...);
     onCanWriteMoreData(...);
 }
+
+# WorkManager uses Room, which instantiates *_Impl classes via reflection.
+# Without this rule R8 removes their zero-arg constructors and startup crashes with
+# "NoSuchMethodException: androidx.work.impl.WorkDatabase_Impl.<init> []"
+-keep class * extends androidx.room.RoomDatabase {
+    <init>();
+}
+
+# Gson populates these models via reflection; R8 must not strip fields or constructors
+-keepattributes *Annotation*
+-keep class com.igeeta.igpod.sync.Server** {
+    <init>();
+    <fields>;
+}
+-keep class com.igeeta.igpod.sync.IgeetaApi$ServerPlaylistInfo { *; }

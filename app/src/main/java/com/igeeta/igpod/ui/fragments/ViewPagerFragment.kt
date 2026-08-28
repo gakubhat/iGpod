@@ -121,9 +121,10 @@ class ViewPagerFragment : BaseFragment(true) {
             }
 
             override fun onTabReselected(p0: TabLayout.Tab?) {
-                if (p0 != null)
-                    (childFragmentManager.findFragmentByTag("f${adapter.getItemId(p0.position)}")
-                            as AdapterFragment?)?.onTabReselected()
+                if (p0 != null) {
+                    val f = childFragmentManager.findFragmentByTag("f${adapter.getItemId(p0.position)}")
+                    if (f is AdapterFragment) f.onTabReselected()
+                }
             }
         })
 

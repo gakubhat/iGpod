@@ -104,6 +104,39 @@ class RadioManager(private val context: Context) {
         return tracks.map { it.raag }.filter { it.isNotBlank() }.distinct().sorted()
     }
 
+    /**
+     * Get all tracks matching a specific prahara number (1-8), using the same
+     * fallback ladder as [getNextTrack]: exact prahara → adjacent praharas →
+     * any raag → all tracks. Used by Android Auto browse tree.
+     */
+    fun getTracksForPrahara(prahara: Int): List<SyncedTrack> {
+        val allTracks = runBlocking { syncDb.getAllTracks() }
+
+        // Step 1: ragas whose prahara column contains "N:"
+        val ragasForPrahara = runBlocking { syncDb.getAllRagas() }
+            .filter { it.prahara.contains("$prahara:") }
+            .map { it.name }.toSet()
+        val praharaTracks = allTracks.filter { it.raag in ragasForPrahara }
+        if (praharaTracks.isNotEmpty()) return praharaTracks
+
+        // Step 2: try adjacent praharas
+        for (offset in listOf(1, -1, 2, -2)) {
+            val adjPrahara = ((prahara + offset - 1).rem(8)) + 1
+            val adjRagas = runBlocking { syncDb.getAllRagas() }
+                .filter { it.prahara.contains("$adjPrahara:") }
+                .map { it.name }.toSet()
+            val adjTracks = allTracks.filter { it.raag in adjRagas }
+            if (adjTracks.isNotEmpty()) return adjTracks
+        }
+
+        // Step 3: any track with a raaga
+        val raagTracks = allTracks.filter { it.raag.isNotBlank() }
+        if (raagTracks.isNotEmpty()) return raagTracks
+
+        // Step 4: all tracks
+        return allTracks
+    }
+
     fun getNextTrack(): MediaItem? {
         android.util.Log.d("RadioManager", "getNextTrack: mode=$_currentMode, filter=$_currentFilter")
         val candidates = when (_currentMode) {

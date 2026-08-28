@@ -8,7 +8,8 @@ import android.database.sqlite.SQLiteOpenHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 
 // ---------------------------------------------------------------------------
@@ -254,7 +255,9 @@ class SyncDatabase private constructor(context: Context) {
     }
 
     fun observePlaylists(): Flow<List<SyncedPlaylist>> {
-        return _playlistChangeFlow.map { kotlinx.coroutines.runBlocking { getAllPlaylists() } }
+        return _playlistChangeFlow.flatMapLatest {
+            flow { emit(getAllPlaylists()) }
+        }
     }
 
     suspend fun getPlaylist(serverId: Int): SyncedPlaylist? = withContext(Dispatchers.IO) {
@@ -586,6 +589,28 @@ class SyncDatabase private constructor(context: Context) {
         val list = mutableListOf<SyncedTrack>()
         db.query("synced_tracks", null, "raag = ?", arrayOf(raag),
             null, null, null).use { cursor ->
+            while (cursor.moveToNext()) {
+                list.add(cursor.toTrack())
+            }
+        }
+        list
+    }
+
+    suspend fun getDistinctRaags(): List<String> = withContext(Dispatchers.IO) {
+        val raags = mutableListOf<String>()
+        db.query(true, "synced_tracks", arrayOf("raag"),
+            "raag != '' AND raag IS NOT NULL", null, null, null, "raag ASC", null).use { cursor ->
+            while (cursor.moveToNext()) {
+                raags.add(cursor.getString(0))
+            }
+        }
+        raags
+    }
+
+    suspend fun getRecentlyPlayedTracks(limit: Int = 10): List<SyncedTrack> = withContext(Dispatchers.IO) {
+        val list = mutableListOf<SyncedTrack>()
+        db.query("synced_tracks", null, "last_played IS NOT NULL AND last_played != ''",
+            null, null, null, "last_played DESC", limit.toString()).use { cursor ->
             while (cursor.moveToNext()) {
                 list.add(cursor.toTrack())
             }

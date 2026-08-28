@@ -33,13 +33,13 @@ import androidx.core.view.doOnLayout
 import androidx.core.view.doOnNextLayout
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.Log
 import androidx.media3.session.MediaController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -305,7 +305,7 @@ class PlayerBottomSheet private constructor(
         reason: Int,
     ) {
         val shouldBeHidden = (instance?.mediaItemCount ?: 0) <= 0 || !visible
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             while (standardBottomSheetBehavior?.state == BottomSheetBehavior.STATE_SETTLING) {
                 delay(100)
             }

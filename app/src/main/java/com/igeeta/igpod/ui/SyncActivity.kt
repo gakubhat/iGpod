@@ -1,9 +1,11 @@
 package com.igeeta.igpod.ui
 
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,6 +13,8 @@ import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,8 +22,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import kotlinx.coroutines.CoroutineScope
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.igeeta.igpod.R
@@ -52,6 +58,10 @@ class SyncActivity : AppCompatActivity() {
     private val adapter = PlaylistSelectAdapter()
     private var serverPlaylists = listOf<IgeetaApi.ServerPlaylistInfo>()
     private var isSyncing = false
+
+    private val cleanupDeleteLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result -> onMediaDeleteResolved(result.resultCode == Activity.RESULT_OK) }
 
     private val syncReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -138,7 +148,7 @@ class SyncActivity : AppCompatActivity() {
 
         // Register broadcast receiver
         val filter = IntentFilter(SyncService.BROADCAST_SYNC_PROGRESS)
-        registerReceiver(syncReceiver, filter)
+        ContextCompat.registerReceiver(this, syncReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         // Load data
         loadPlaylists()
@@ -181,7 +191,7 @@ class SyncActivity : AppCompatActivity() {
         serverConfigCard.visibility = View.GONE
         editConfigButton.visibility = View.VISIBLE
 
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             val api = IgeetaApi(config)
             try {
                 val connected = api.testConnection()
@@ -235,7 +245,7 @@ class SyncActivity : AppCompatActivity() {
     }
 
     private fun loadSyncHistory() {
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             val db = SyncDatabase.getInstance(this@SyncActivity)
             val log = db.getRecentLogs(1)
             val playlistCount = db.getAllPlaylists().size
@@ -312,31 +322,24 @@ class SyncActivity : AppCompatActivity() {
     }
 
     private fun performClean() {
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 android.util.Log.d("SyncActivity", "Starting clean operation")
-                val db = SyncDatabase.getInstance(this@SyncActivity)
-                android.util.Log.d("SyncActivity", "Deleting tracks...")
-                db.deleteAllTracks()
-                android.util.Log.d("SyncActivity", "Deleting playlists...")
-                db.deleteAllPlaylists()
-                android.util.Log.d("SyncActivity", "Deleting playlist entries...")
-                db.deleteAllPlaylistEntries()
-                android.util.Log.d("SyncActivity", "Deleting ragas...")
-                db.deleteAllRagas()
-                android.util.Log.d("SyncActivity", "Deleting logs...")
-                db.deleteAllLogs()
-
-                // Delete music files
-                android.util.Log.d("SyncActivity", "Deleting music files...")
-                val syncRoot = com.igeeta.igpod.sync.SyncManager.getSyncRoot(this@SyncActivity)
-                android.util.Log.d("SyncActivity", "Sync root: ${syncRoot.absolutePath}, exists: ${syncRoot.exists()}")
-                val deleted = syncRoot.deleteRecursively()
-                android.util.Log.d("SyncActivity", "Delete recursively result: $deleted")
-
+                val leftovers = com.igeeta.igpod.sync.SyncManager.cleanEverything(this@SyncActivity)
+                if (leftovers > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val uris = com.igeeta.igpod.sync.SyncManager.queryLeftoverMediaUris(this@SyncActivity)
+                    if (uris.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@SyncActivity,
+                                "Some files need system approval to delete", Toast.LENGTH_SHORT).show()
+                            val pis = android.provider.MediaStore.createDeleteRequest(contentResolver, uris)
+                            cleanupDeleteLauncher.launch(IntentSenderRequest.Builder(pis.intentSender).build())
+                        }
+                        return@launch
+                    }
+                }
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@SyncActivity, "Collection cleaned", Toast.LENGTH_SHORT).show()
-                    loadSyncHistory()
+                    finishClean(leftovers == 0, leftovers)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("SyncActivity", "Clean failed", e)
@@ -345,6 +348,28 @@ class SyncActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun onMediaDeleteResolved(approved: Boolean) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            var remaining = -1
+            if (approved) {
+                // Give MediaStore a moment to process the batch deletion
+                delay(1500)
+                remaining = com.igeeta.igpod.sync.SyncManager.queryLeftoverMediaUris(this@SyncActivity).size
+            }
+            withContext(Dispatchers.Main) { finishClean(approved && remaining == 0, remaining) }
+        }
+    }
+
+    private fun finishClean(success: Boolean, remaining: Int) {
+        val msg = when {
+            success -> "Collection cleaned"
+            remaining > 0 -> "Database cleaned; $remaining file(s) could not be deleted"
+            else -> "File deletion cancelled — database already cleaned"
+        }
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+        loadSyncHistory()
     }
 
     // -----------------------------------------------------------------------

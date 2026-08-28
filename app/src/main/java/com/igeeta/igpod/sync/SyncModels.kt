@@ -37,7 +37,7 @@ data class ServerTrack(
     val title: String = "",
     val artists: List<String> = emptyList(),
     val instruments: List<String> = emptyList(),
-    val tags: Map<String, String> = emptyMap(),
+    val tags: Map<String, Any> = emptyMap(),
     val duration: Double = 0.0,
     @SerializedName("file_size") val fileSize: Long = 0,
     val bitrate: Int = 0,

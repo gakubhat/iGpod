@@ -41,7 +41,7 @@ class IgeetaApi(config: SyncConfig) {
                 .get()
                 .build()
             val response = client.newCall(request).execute()
-            response.isSuccessful
+            response.use { it.isSuccessful }
         } catch (_: Exception) {
             false
         }
@@ -60,10 +60,12 @@ class IgeetaApi(config: SyncConfig) {
             .get()
             .build()
         val response = client.newCall(request).execute()
-        if (!response.isSuccessful) throw IOException("GET /api/playlists failed: ${response.code}")
-        val body = response.body?.string() ?: throw IOException("Empty response")
-        val type = object : TypeToken<List<ServerPlaylist>>() {}.type
-        return gson.fromJson(body, type)
+        return response.use {
+            if (!it.isSuccessful) throw IOException("GET /api/playlists failed: ${it.code}")
+            val body = it.body?.string() ?: throw IOException("Empty response")
+            val type = object : TypeToken<List<ServerPlaylist>>() {}.type
+            gson.fromJson(body, type)
+        }
     }
 
     /**
@@ -75,9 +77,11 @@ class IgeetaApi(config: SyncConfig) {
             .get()
             .build()
         val response = client.newCall(request).execute()
-        if (!response.isSuccessful) throw IOException("GET /api/playlists/$id failed: ${response.code}")
-        val body = response.body?.string() ?: throw IOException("Empty response")
-        return gson.fromJson(body, ServerPlaylistWithTracks::class.java)
+        return response.use {
+            if (!it.isSuccessful) throw IOException("GET /api/playlists/$id failed: ${it.code}")
+            val body = it.body?.string() ?: throw IOException("Empty response")
+            gson.fromJson(body, ServerPlaylistWithTracks::class.java)
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -93,9 +97,11 @@ class IgeetaApi(config: SyncConfig) {
             .get()
             .build()
         val response = client.newCall(request).execute()
-        if (!response.isSuccessful) throw IOException("GET /api/track failed: ${response.code}")
-        val body = response.body?.string() ?: throw IOException("Empty response")
-        return gson.fromJson(body, ServerTrack::class.java)
+        return response.use {
+            if (!it.isSuccessful) throw IOException("GET /api/track failed: ${it.code}")
+            val body = it.body?.string() ?: throw IOException("Empty response")
+            gson.fromJson(body, ServerTrack::class.java)
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -184,9 +190,11 @@ class IgeetaApi(config: SyncConfig) {
             .post(requestBody)
             .build()
         val response = client.newCall(request).execute()
-        if (!response.isSuccessful) throw IOException("POST /api/track/rating failed: ${response.code}")
-        val body = response.body?.string() ?: throw IOException("Empty response")
-        return gson.fromJson(body, ServerRatingResponse::class.java)
+        return response.use {
+            if (!it.isSuccessful) throw IOException("POST /api/track/rating failed: ${it.code}")
+            val body = it.body?.string() ?: throw IOException("Empty response")
+            gson.fromJson(body, ServerRatingResponse::class.java)
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -202,10 +210,12 @@ class IgeetaApi(config: SyncConfig) {
             .get()
             .build()
         val response = client.newCall(request).execute()
-        if (!response.isSuccessful) throw IOException("GET /api/raga failed: ${response.code}")
-        val body = response.body?.string() ?: throw IOException("Empty response")
-        val type = object : TypeToken<List<ServerRaga>>() {}.type
-        return gson.fromJson(body, type)
+        return response.use {
+            if (!it.isSuccessful) throw IOException("GET /api/raga failed: ${it.code}")
+            val body = it.body?.string() ?: throw IOException("Empty response")
+            val type = object : TypeToken<List<ServerRaga>>() {}.type
+            gson.fromJson(body, type)
+        }
     }
 
     // -----------------------------------------------------------------------

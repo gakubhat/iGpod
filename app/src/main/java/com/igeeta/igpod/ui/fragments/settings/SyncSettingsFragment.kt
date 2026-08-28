@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,7 +70,7 @@ class SyncSettingsFragment : BasePreferenceFragment() {
             return
         }
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val api = IgeetaApi(config)
             val success = try {
                 api.testConnection()
@@ -92,7 +92,7 @@ class SyncSettingsFragment : BasePreferenceFragment() {
     }
 
     private fun updateSyncStatus() {
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val db = SyncDatabase.getInstance(requireContext())
             val playlists = db.getAllPlaylists()
             val count = playlists.size

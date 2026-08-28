@@ -168,10 +168,25 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
 
         // Android Auto browse-tree node IDs
         private const val ROOT_ID = "root"
+        private const val HOME_ID = "home"
         private const val ALBUMS_ID = "albums"
         private const val ARTISTS_ID = "artists"
+        private const val RAAGAS_ID = "raagas"
         private const val SONGS_ID = "songs"
         private const val PLAYLISTS_ID = "playlists"
+        private const val RADIO_ID = "radio"
+        private const val RECENTLY_PLAYED_ID = "recently_played"
+
+        private val PRAHARA_WINDOWS = mapOf(
+            1 to "6PM-9PM",
+            2 to "9PM-12AM",
+            3 to "12AM-3AM",
+            4 to "3AM-6AM",
+            5 to "6AM-9AM",
+            6 to "9AM-12PM",
+            7 to "12PM-3PM",
+            8 to "3PM-6PM"
+        )
     }
 
     private var lastSessionId = 0
@@ -265,23 +280,23 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
 
         customCommands =
             listOf(
-                CommandButton.Builder(CommandButton.ICON_SHUFFLE_OFF) // shuffle currently disabled, click will enable
+                CommandButton.Builder(CommandButton.ICON_SHUFFLE_OFF)
                     .setDisplayName(getString(R.string.shuffle))
                     .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE, true)
                     .build(),
-                CommandButton.Builder(CommandButton.ICON_SHUFFLE_ON) // shuffle currently enabled, click will disable
+                CommandButton.Builder(CommandButton.ICON_SHUFFLE_ON)
                     .setDisplayName(getString(R.string.shuffle))
                     .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE, false)
                     .build(),
-                CommandButton.Builder(CommandButton.ICON_REPEAT_OFF) // repeat currently disabled, click will repeat all
+                CommandButton.Builder(CommandButton.ICON_REPEAT_OFF)
                     .setDisplayName(getString(R.string.repeat_mode))
                     .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE, Player.REPEAT_MODE_ALL)
                     .build(),
-                CommandButton.Builder(CommandButton.ICON_REPEAT_ALL) // repeat all currently enabled, click will repeat one
+                CommandButton.Builder(CommandButton.ICON_REPEAT_ALL)
                     .setDisplayName(getString(R.string.repeat_mode))
                     .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE, Player.REPEAT_MODE_ONE)
                     .build(),
-                CommandButton.Builder(CommandButton.ICON_REPEAT_ONE) // repeat one currently enabled, click will disable
+                CommandButton.Builder(CommandButton.ICON_REPEAT_ONE)
                     .setDisplayName(getString(R.string.repeat_mode))
                     .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE, Player.REPEAT_MODE_OFF)
                     .build(),
@@ -449,6 +464,22 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
             seekReceiver,
             IntentFilter("$packageName.SEEK_TO"),
             @SuppressLint("WrongConstant") // why is this needed?
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        ContextCompat.registerReceiver(
+            this,
+            object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    if (intent.action == com.igeeta.igpod.sync.SyncService.ACTION_LIBRARY_CHANGED) {
+                        try {
+                            mediaSession?.notifyChildrenChanged(ROOT_ID, Int.MAX_VALUE, null)
+                        } catch (e: Exception) {
+                            android.util.Log.w(TAG, "notifyChildrenChanged failed", e)
+                        }
+                    }
+                }
+            },
+            IntentFilter(com.igeeta.igpod.sync.SyncService.ACTION_LIBRARY_CHANGED),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
         scope.launch {
@@ -660,12 +691,12 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
         // Important: this must happen before sending stop() as that changes state ENDED -> IDLE
         lastPlayedManager.save()
         scope.cancel()
-        endedWorkaroundPlayer!!.stop()
+        endedWorkaroundPlayer?.stop()
         handler.removeCallbacks(timer)
-        controller!!.release()
+        controller?.release()
         controller = null
-        mediaSession!!.release()
-        endedWorkaroundPlayer!!.release()
+        mediaSession?.release()
+        endedWorkaroundPlayer?.release()
         mediaSession = null
         broadcastAudioSessionClose()
         internalPlaybackThread.quitSafely()
@@ -1022,11 +1053,40 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
         val db = SyncDatabase.getInstance(applicationContext)
         val items = when (parentId) {
             ROOT_ID -> listOf(
-                categoryItem(ALBUMS_ID, getString(R.string.auto_albums), MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS),
-                categoryItem(ARTISTS_ID, getString(R.string.auto_artists), MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS),
-                categoryItem(SONGS_ID, getString(R.string.auto_songs), MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
-                categoryItem(PLAYLISTS_ID, getString(R.string.auto_playlists), MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
+                categoryItem(HOME_ID, getString(R.string.app_name), MediaMetadata.MEDIA_TYPE_FOLDER_MIXED, iconRes = com.igeeta.igpod.R.drawable.ic_launcher_foreground),
+                categoryItem(ARTISTS_ID, getString(R.string.auto_artists), MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS, iconRes = com.igeeta.igpod.R.drawable.ic_person),
+                categoryItem(ALBUMS_ID, getString(R.string.auto_albums), MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS, iconRes = com.igeeta.igpod.R.drawable.ic_album),
+                categoryItem(RAAGAS_ID, "Raagas", MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS, iconRes = com.igeeta.igpod.R.drawable.ic_radio),
             )
+            HOME_ID -> {
+                val recentlyPlayed = runBlocking { db.getRecentlyPlayedTracks(10) }
+                val playlists = runBlocking { db.getAllPlaylists() }
+
+                mutableListOf<MediaItem>().apply {
+                    add(
+                        MediaItem.Builder()
+                            .setMediaId("radio:current")
+                            .setMediaMetadata(
+                                MediaMetadata.Builder()
+                                    .setIsBrowsable(false)
+                                    .setIsPlayable(true)
+                                    .setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
+                                    .setTitle(PRAHARA_WINDOWS[RadioManager(this@IgpodPlaybackService).getCurrentPrahara()] ?: "Radio")
+                                    .setArtist(getString(R.string.auto_radio))
+                                    .setArtworkUri(Uri.parse("android.resource://${packageName}/${com.igeeta.igpod.R.drawable.ic_radio}"))
+                                    .build()
+                            )
+                            .build()
+                    )
+                    if (recentlyPlayed.isNotEmpty()) {
+                        add(categoryItem(RECENTLY_PLAYED_ID, "Recently Played", MediaMetadata.MEDIA_TYPE_PLAYLIST))
+                    }
+                    if (playlists.isNotEmpty()) {
+                        add(categoryItem(PLAYLISTS_ID, getString(R.string.auto_playlists), MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS))
+                    }
+                }
+            }
+            RECENTLY_PLAYED_ID -> runBlocking { db.getRecentlyPlayedTracks(20).map { trackItem(it) } }
             ALBUMS_ID -> runBlocking {
                 db.getAllTracks().map { it.album }.filter { it.isNotEmpty() }
                     .distinct().sorted().map { album ->
@@ -1043,6 +1103,11 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
                         categoryItem("artist:$artist", artist, MediaMetadata.MEDIA_TYPE_ARTIST)
                     }
             }
+            RAAGAS_ID -> runBlocking {
+                db.getDistinctRaags().map { raaga ->
+                    categoryItem("raaga:$raaga", raaga, MediaMetadata.MEDIA_TYPE_PLAYLIST)
+                }
+            }
             SONGS_ID -> runBlocking { db.getAllTracks().map { trackItem(it) } }
             PLAYLISTS_ID -> runBlocking {
                 db.getAllPlaylists().map { pl ->
@@ -1050,24 +1115,153 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
                 }
             }
             else -> {
-                // album:<name> / artist:<name> / playlist:<id>
+                // album:<name> / artist:<name> / playlist:<id> / prahara:<N>
                 val colon = parentId.indexOf(':')
                 if (colon < 0) emptyList()
                 else {
                     val kind = parentId.substring(0, colon)
                     val value = parentId.substring(colon + 1)
-                    runBlocking {
-                        when (kind) {
-                            "album" -> db.getAllTracks().filter { it.album == value }.map { trackItem(it) }
-                            "artist" -> db.getAllTracks().filter { parseArtists(it.artists).contains(value) }.map { trackItem(it) }
-                            "playlist" -> db.getTracksByPlaylist(value.toIntOrNull() ?: -1).map { trackItem(it) }
-                            else -> emptyList()
+                    when (kind) {
+                        "prahara" -> {
+                            val praharaNum = value.toIntOrNull() ?: 1
+                            val radioManager = RadioManager(this@IgpodPlaybackService)
+                            radioManager.getTracksForPrahara(praharaNum).map { trackItem(it) }
                         }
+                        "raaga" -> runBlocking {
+                            db.getTracksByRaag(value).map { trackItem(it) }
+                        }
+                        "album" -> runBlocking {
+                            db.getAllTracks().filter { it.album == value }.map { trackItem(it) }
+                        }
+                        "artist" -> runBlocking {
+                            db.getAllTracks().filter { parseArtists(it.artists).contains(value) }.map { trackItem(it) }
+                        }
+                        "playlist" -> runBlocking {
+                            db.getTracksByPlaylist(value.toIntOrNull() ?: -1).map { trackItem(it) }
+                        }
+                        else -> emptyList()
                     }
                 }
             }
         }
         return Futures.immediateFuture(LibraryResult.ofItemList(ArrayList(items), MediaLibraryService.LibraryParams.Builder().setOffline(true).build()))
+    }
+
+    override fun onGetItem(
+        session: MediaLibraryService.MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        mediaId: String
+    ): ListenableFuture<LibraryResult<MediaItem>> {
+        val db = SyncDatabase.getInstance(applicationContext)
+        if (mediaId.startsWith("Db:")) {
+            val hash = mediaId.removePrefix("Db:").toLongOrNull() ?: return Futures.immediateFuture(
+                LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
+            )
+            val track = runBlocking { db.getAllTracks().firstOrNull { it.filePath.hashCode().toLong() == hash } }
+            if (track != null) {
+                return Futures.immediateFuture(LibraryResult.ofItem(trackItem(track), null))
+            }
+        }
+        return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE))
+    }
+
+    override fun onSetMediaItems(
+        mediaSession: MediaSession,
+        browser: MediaSession.ControllerInfo,
+        mediaItems: List<MediaItem>,
+        startIndex: Int,
+        startPositionMs: Long
+    ): ListenableFuture<MediaItemsWithStartPosition> {
+        if (mediaItems.size == 1) {
+            val item = mediaItems[0]
+            val expanded = maybeExpandSingleItem(item)
+            if (expanded != null) {
+                return Futures.immediateFuture(expanded)
+            }
+        }
+        val resolved = resolveMediaItemsForPlayback(mediaItems)
+        return Futures.immediateFuture(MediaItemsWithStartPosition(resolved, startIndex.coerceAtMost(resolved.size - 1).coerceAtLeast(0), startPositionMs))
+    }
+
+    private fun maybeExpandSingleItem(item: MediaItem): MediaItemsWithStartPosition? {
+        val db = SyncDatabase.getInstance(applicationContext)
+        val mediaId = item.mediaId
+
+        if (mediaId == "radio:current") {
+            val radioManager = RadioManager(this@IgpodPlaybackService)
+            val currentPrahara = radioManager.getCurrentPrahara()
+            val tracks = radioManager.getTracksForPrahara(currentPrahara)
+            if (tracks.isNotEmpty()) {
+                val items = tracks.map { trackItem(it) }
+                return MediaItemsWithStartPosition(items, 0, 0)
+            }
+        }
+
+        if (mediaId.startsWith("playlist:")) {
+            val playlistId = mediaId.removePrefix("playlist:").toIntOrNull() ?: return null
+            val tracks = runBlocking { db.getTracksByPlaylist(playlistId) }
+            if (tracks.isNotEmpty()) {
+                val items = tracks.map { trackItem(it) }
+                return MediaItemsWithStartPosition(items, 0, 0)
+            }
+        }
+
+        if (mediaId.startsWith("prahara:")) {
+            val praharaNum = mediaId.removePrefix("prahara:").toIntOrNull() ?: return null
+            val radioManager = RadioManager(this@IgpodPlaybackService)
+            val tracks = radioManager.getTracksForPrahara(praharaNum)
+            if (tracks.isNotEmpty()) {
+                val items = tracks.map { trackItem(it) }
+                return MediaItemsWithStartPosition(items, 0, 0)
+            }
+        }
+
+        if (mediaId.startsWith("Db:")) {
+            val hash = mediaId.removePrefix("Db:").toLongOrNull() ?: return null
+            val track = runBlocking { db.getAllTracks().firstOrNull { it.filePath.hashCode().toLong() == hash } }
+            if (track != null) {
+                // Try playlist first
+                if (track.playlistServerId != null) {
+                    val tracks = runBlocking { db.getTracksByPlaylist(track.playlistServerId) }
+                    if (tracks.isNotEmpty()) {
+                        val items = tracks.map { trackItem(it) }
+                        val indexInPlaylist = tracks.indexOfFirst { it.filePath == track.filePath }.coerceAtLeast(0)
+                        return MediaItemsWithStartPosition(items, indexInPlaylist, 0)
+                    }
+                }
+                // Try raaga
+                if (!track.raag.isNullOrEmpty()) {
+                    val tracks = runBlocking { db.getTracksByRaag(track.raag) }
+                    if (tracks.isNotEmpty()) {
+                        val items = tracks.map { trackItem(it) }
+                        val indexInRaaga = tracks.indexOfFirst { it.filePath == track.filePath }.coerceAtLeast(0)
+                        return MediaItemsWithStartPosition(items, indexInRaaga, 0)
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
+    private fun resolveMediaItemsForPlayback(mediaItems: List<MediaItem>): List<MediaItem> {
+        return mediaItems.map { item ->
+            if (item.localConfiguration != null) {
+                item
+            } else if (item.mediaId != MediaItem.DEFAULT_MEDIA_ID && item.mediaId.isNotEmpty()) {
+                val db = SyncDatabase.getInstance(applicationContext)
+                if (item.mediaId.startsWith("Db:")) {
+                    val hash = item.mediaId.removePrefix("Db:").toLongOrNull()
+                    if (hash != null) {
+                        val track = runBlocking { db.getAllTracks().firstOrNull { it.filePath.hashCode().toLong() == hash } }
+                        if (track != null) return@map trackItem(track)
+                    }
+                }
+                item
+            } else {
+                item
+            }
+        }
     }
 
     override fun onSearch(
@@ -1076,41 +1270,95 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
         query: String,
         params: MediaLibraryService.LibraryParams?
     ): ListenableFuture<LibraryResult<Void>> {
-        // TODO: surface search results to Auto via a search root in onGetChildren.
+        val db = SyncDatabase.getInstance(applicationContext)
+        val results = searchSyncDatabase(db, query)
+        session.notifySearchResultChanged(browser, query, results.size, params)
         return Futures.immediateFuture(LibraryResult.ofVoid())
+    }
+
+    override fun onGetSearchResult(
+        session: MediaLibraryService.MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        query: String,
+        page: Int,
+        pageSize: Int,
+        params: MediaLibraryService.LibraryParams?
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+        val db = SyncDatabase.getInstance(applicationContext)
+        val results = searchSyncDatabase(db, query)
+        return Futures.immediateFuture(LibraryResult.ofItemList(ArrayList(results), params))
+    }
+
+    private fun searchSyncDatabase(db: SyncDatabase, query: String): List<MediaItem> {
+        if (query.isBlank()) return emptyList()
+        val q = query.trim().lowercase()
+        return runBlocking {
+            db.getAllTracks().filter { track ->
+                track.title.lowercase().contains(q) ||
+                    track.album.lowercase().contains(q) ||
+                    parseArtists(track.artists).any { it.lowercase().contains(q) } ||
+                    track.genre.lowercase().contains(q)
+            }.map { trackItem(it) }
+        }
     }
 
     private fun categoryItem(
         id: String,
         title: String,
         mediaType: Int,
-        artwork: Uri? = null
-    ): MediaItem = MediaItem.Builder()
-        .setMediaId(id)
-        .setMediaMetadata(
-            MediaMetadata.Builder()
-                .setIsBrowsable(true)
-                .setIsPlayable(false)
-                .setMediaType(mediaType)
-                .setTitle(title)
-                .apply { if (artwork != null) setArtworkUri(artwork) }
-                .build()
-        )
-        .build()
+        artwork: Uri? = null,
+        @androidx.annotation.DrawableRes iconRes: Int = 0,
+        playable: Boolean = false
+    ): MediaItem {
+        val iconUri = if (iconRes != 0) {
+            Uri.parse("android.resource://${packageName}/${iconRes}")
+        } else artwork
+        return MediaItem.Builder()
+            .setMediaId(id)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setIsBrowsable(true)
+                    .setIsPlayable(playable)
+                    .setMediaType(mediaType)
+                    .setTitle(title)
+                    .apply { if (iconUri != null) setArtworkUri(iconUri) }
+                    .build()
+            )
+            .build()
+    }
+
+    // Resolves a file path to a MediaStore content:// URI so Android Auto
+    // (running in a separate process) can open the audio file. Falls back to
+    // file:// if the track isn't indexed in MediaStore.
+    private fun mediaStoreUriFor(track: SyncedTrack): Uri {
+        val fullPath = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+            "iGeeta/${track.filePath}"
+        ).absolutePath
+        contentResolver.query(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            arrayOf(MediaStore.Audio.Media._ID),
+            "${MediaStore.Audio.Media.DATA} = ?",
+            arrayOf(fullPath),
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID))
+                return ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
+            }
+        }
+        return Uri.fromFile(File(fullPath))
+    }
 
     // Builds a playable MediaItem for Android Auto from a SyncedTrack. Uses a
     // content:// artwork URI (served by IgpodAlbumArtProvider) so the head
     // unit can load art across process boundaries (app-private file:// won't work).
     private fun trackItem(track: SyncedTrack): MediaItem {
         val id = track.filePath.hashCode().toLong()
-        val fullPath = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
-            "iGeeta/${track.filePath}"
-        )
         val artists = parseArtists(track.artists).firstOrNull()
         return MediaItem.Builder()
             .setMediaId("Db:$id")
-            .setUri(android.net.Uri.fromFile(fullPath))
+            .setUri(mediaStoreUriFor(track))
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setIsBrowsable(false)
@@ -1335,17 +1583,23 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
     }
 
     private fun refreshMediaButtonCustomLayout() {
-        val isEmpty = controller?.currentTimeline?.isEmpty != false
-        mediaSession!!.connectedControllers.forEach {
-            if (mediaSession!!.isMediaNotificationController(it)
-                || mediaSession!!.isAutoCompanionController(it)
-                || mediaSession!!.isAutomotiveController(it)
-            ) {
-                mediaSession!!.setMediaButtonPreferences(
-                    it, if (isEmpty) emptyList() else
-                        ImmutableList.of(getRepeatCommand(), getShufflingCommand())
-                )
+        val session = mediaSession ?: return
+        val ctrl = controller ?: return
+        val isEmpty = ctrl.currentTimeline.isEmpty
+        try {
+            session.connectedControllers.forEach {
+                if (session.isMediaNotificationController(it)
+                    || session.isAutoCompanionController(it)
+                    || session.isAutomotiveController(it)
+                ) {
+                    session.setMediaButtonPreferences(
+                        it, if (isEmpty) emptyList() else
+                            ImmutableList.of(getRepeatCommand(), getShufflingCommand())
+                    )
+                }
             }
+        } catch (e: Exception) {
+            Log.w(TAG, "refreshMediaButtonCustomLayout failed: ${Log.getThrowableString(e)}")
         }
     }
 

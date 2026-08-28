@@ -1,9 +1,15 @@
 package com.igeeta.igpod.sync
 
 import android.content.Context
+import android.content.ContentUris
+import android.net.Uri
 import android.os.Environment
 import android.os.StatFs
+import android.provider.MediaStore
 import androidx.preference.PreferenceManager
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -22,9 +28,82 @@ class SyncManager(private val context: Context) {
             val musicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
             return File(musicDir, "iGeeta")
         }
+
+        /**
+         * Deletes all sync database rows, the cached artwork directory and all
+         * synced files under the sync root.
+         *
+         * Returns the number of files that could not be deleted directly. Under
+         * scoped storage this happens for files contributed to MediaStore by
+         * another app install (e.g. the .debug build sharing the same sync root).
+         * The caller should offer a system-mediated delete via
+         * [queryLeftoverMediaUris] + MediaStore.createDeleteRequest.
+         */
+        suspend fun cleanEverything(context: Context): Int = withContext(Dispatchers.IO) {
+            val db = SyncDatabase.getInstance(context)
+            db.deleteAllTracks()
+            db.deleteAllPlaylists()
+            db.deleteAllPlaylistEntries()
+            db.deleteAllRagas()
+            db.deleteAllLogs()
+
+            // App-private artwork cache lives outside the sync root
+            File(context.filesDir, "artwork").deleteRecursively()
+
+            var leftovers = 0
+            val syncRoot = getSyncRoot(context)
+            if (syncRoot.exists()) {
+                syncRoot.walkBottomUp().filter { it.isFile }.forEach {
+                    if (!it.delete()) leftovers++
+                }
+                // Remove whatever empty directories remain
+                syncRoot.deleteRecursively()
+            }
+            leftovers
+        }
+
+        /**
+         * MediaStore content URIs of files still present under Music/iGeeta,
+         * e.g. after some direct deletions failed.
+         *
+         * MediaStore.createDeleteRequest rejects URIs from the generic Files
+         * collection ("All requested items must be Media items"), so each row
+         * is mapped to its typed media collection (audio/images/video) based
+         * on media_type. Rows without a media type cannot be deleted through
+         * the consent flow and are skipped.
+         */
+        fun queryLeftoverMediaUris(context: Context): List<Uri> {
+            val uris = mutableListOf<Uri>()
+            val filesUri = MediaStore.Files.getContentUri("external")
+            context.contentResolver.query(
+                filesUri,
+                arrayOf(MediaStore.MediaColumns._ID, MediaStore.Files.FileColumns.MEDIA_TYPE),
+                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?",
+                arrayOf("Music/iGeeta%"),
+                null,
+            )?.use { c ->
+                val idCol = c.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                val typeCol = c.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MEDIA_TYPE)
+                while (c.moveToNext()) {
+                    val id = c.getLong(idCol)
+                    val base = when (c.getInt(typeCol)) {
+                        MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO ->
+                            MediaStore.Audio.Media.getContentUri("external")
+                        MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE ->
+                            MediaStore.Images.Media.getContentUri("external")
+                        MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO ->
+                            MediaStore.Video.Media.getContentUri("external")
+                        else -> null
+                    }
+                    if (base != null) uris += ContentUris.withAppendedId(base, id)
+                }
+            }
+            return uris
+        }
     }
 
     private val db = SyncDatabase.getInstance(context)
+    private val gson = Gson()
 
     private fun getConfig(): SyncConfig? {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
@@ -49,6 +128,7 @@ class SyncManager(private val context: Context) {
         playlistIds: List<Int>,
         onProgress: (SyncProgress) -> Unit = {},
     ): Boolean {
+        android.util.Log.d("SyncManager", "syncPlaylists called with ids=$playlistIds")
         val config = getConfig() ?: run {
             onProgress(SyncProgress(phase = SyncPhase.ERROR, errorMessage = "Server not configured"))
             return false
@@ -76,15 +156,18 @@ class SyncManager(private val context: Context) {
             var totalTracksSkipped = 0
 
             for (playlistId in playlistIds) {
+                android.util.Log.d("SyncManager", "Fetching playlist $playlistId")
                 val serverPlaylist = try {
                     api.getPlaylist(playlistId)
                 } catch (e: Exception) {
+                    android.util.Log.e("SyncManager", "Failed to fetch playlist $playlistId", e)
                     onProgress(SyncProgress(
                         phase = SyncPhase.ERROR,
                         errorMessage = "Failed to fetch playlist $playlistId: ${e.message}"
                     ))
                     continue
                 }
+                android.util.Log.d("SyncManager", "Fetched playlist ${serverPlaylist.name} (${serverPlaylist.tracks.size} tracks)")
 
                 onProgress(SyncProgress(
                     phase = SyncPhase.SYNCING_TRACKS,
@@ -118,8 +201,19 @@ class SyncManager(private val context: Context) {
                         currentAction = track.title.ifBlank { track.filePath }
                     ))
 
-                    val synced = syncTrack(api, syncRoot, track, playlistId, index)
-                    if (synced) totalTracksSynced++ else totalTracksSkipped++
+                    try {
+                        val synced = syncTrack(api, syncRoot, track, playlistId, index)
+                        if (synced) totalTracksSynced++ else totalTracksSkipped++
+                    } catch (e: Exception) {
+                        android.util.Log.e("SyncManager", "Track ${track.filePath} failed: ${e.message}", e)
+                        onProgress(SyncProgress(
+                            phase = SyncPhase.SYNCING_TRACKS,
+                            playlistName = serverPlaylist.name,
+                            currentTrack = index + 1,
+                            totalTracks = serverPlaylist.tracks.size,
+                            currentAction = "Skipped: ${track.title.ifBlank { track.filePath }}",
+                        ))
+                    }
 
                     // Insert playlist entry
                     db.upsertPlaylistEntry(SyncedPlaylistEntry(
@@ -154,6 +248,7 @@ class SyncManager(private val context: Context) {
 
             // 7. Log completion
             val detail = "Synced $totalTracksSynced tracks, skipped $totalTracksSkipped (exist), cleaned $orphanedCount orphans"
+            android.util.Log.d("SyncManager", "Sync complete: $detail")
             db.insertLog(SyncLog(
                 timestamp = now(),
                 action = "sync",
@@ -239,9 +334,9 @@ class SyncManager(private val context: Context) {
             album = serverTrack.album,
             raag = serverTrack.raag,
             title = serverTrack.title,
-            artists = com.google.gson.Gson().toJson(serverTrack.artists),
-            instruments = com.google.gson.Gson().toJson(serverTrack.instruments),
-            tags = com.google.gson.Gson().toJson(serverTrack.tags),
+            artists = gson.toJson(serverTrack.artists),
+            instruments = gson.toJson(serverTrack.instruments),
+            tags = gson.toJson(serverTrack.tags),
             duration = serverTrack.duration,
             fileSize = serverTrack.fileSize,
             bitrate = serverTrack.bitrate,

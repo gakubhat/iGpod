@@ -34,6 +34,7 @@ class SyncService : Service() {
         const val EXTRA_PROGRESS_TEXT = "progress_text"
         const val EXTRA_PROGRESS_PERCENT = "progress_percent"
         const val EXTRA_IS_SYNCING = "is_syncing"
+        const val ACTION_LIBRARY_CHANGED = "com.igeeta.igpod.action.LIBRARY_CHANGED"
 
         private const val CHANNEL_ID = "igeeta_sync"
         private const val NOTIFICATION_ID = 9001
@@ -43,10 +44,15 @@ class SyncService : Service() {
                 action = ACTION_START_SYNC
                 putIntegerArrayListExtra(EXTRA_PLAYLIST_IDS, ArrayList(playlistIds))
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SyncService", "Failed to start foreground service", e)
+                android.widget.Toast.makeText(context, "Sync unavailable in background", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -98,6 +104,8 @@ class SyncService : Service() {
         syncJob = scope.launch {
             broadcastProgress("Starting sync...", 0, true)
 
+            var lastError: String? = null
+
             val success = syncManager.syncPlaylists(playlistIds) { progress ->
                 val text = when (progress.phase) {
                     SyncPhase.CONNECTING -> "Connecting to server..."
@@ -112,7 +120,10 @@ class SyncService : Service() {
                     }
                     SyncPhase.SYNCING_RATINGS -> progress.currentAction
                     SyncPhase.DONE -> "Sync complete!"
-                    SyncPhase.ERROR -> "Error: ${progress.errorMessage}"
+                    SyncPhase.ERROR -> {
+                        lastError = progress.errorMessage
+                        "Error: ${progress.errorMessage}"
+                    }
                 }
                 val progressPercent = if (progress.phase == SyncPhase.SYNCING_TRACKS) progress.percent else 0
                 updateNotification(text, progressPercent)
@@ -122,6 +133,15 @@ class SyncService : Service() {
             if (success) {
                 updateNotification("Sync complete!", 100)
                 broadcastProgress("Sync complete!", 100, false)
+                // Trigger MediaStore scan so synced tracks are available to
+                // Android Auto and other apps that use content:// URIs.
+                try {
+                    val scanIntent = android.content.Intent(android.content.Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+                    scanIntent.data = android.net.Uri.parse("file://${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MUSIC)}/iGeeta/")
+                    sendBroadcast(scanIntent)
+                } catch (e: Exception) {
+                    android.util.Log.w("SyncService", "MediaStore scan trigger failed", e)
+                }
                 // iGeeta: re-read the library from the synced database so new
                 // tracks/playlists show up without restarting the app.
                 try {
@@ -129,8 +149,15 @@ class SyncService : Service() {
                 } catch (e: Exception) {
                     android.util.Log.w("SyncService", "library refresh after sync failed", e)
                 }
+                // Notify the playback service so Android Auto refreshes its browse tree.
+                try {
+                    sendBroadcast(Intent(ACTION_LIBRARY_CHANGED))
+                } catch (e: Exception) {
+                    android.util.Log.w("SyncService", "library changed broadcast failed", e)
+                }
             } else {
-                broadcastProgress("Sync failed", 0, false)
+                val msg = lastError ?: "Sync failed"
+                broadcastProgress(msg, 0, false)
             }
 
             // Small delay so user can see completion

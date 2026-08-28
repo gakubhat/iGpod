@@ -97,10 +97,10 @@ android {
         // Reasons to not support KK include me.zhanghai.android.fastscroll, WindowInsets for
         // bottom sheet padding, ExoPlayer requiring multidex, vector drawables and poor SD support
         // Stock AndroidX Media 1.10.1 requires minSdk 23, so we follow that floor.
-        minSdk = 23
-        targetSdk = 35
-        versionCode = 24 // 23 registered on Play (with shortcuts.xml/App Actions); 24 removes App Actions
-        versionName = "1.1.1"
+        minSdk = 31
+        targetSdk = 36
+        versionCode = 25 // 23 registered on Play (with shortcuts.xml/App Actions); 24 removes App Actions
+        versionName = "1.2.1"
         if (releaseType != "Release" || versionNameSuffixOverride != null) {
             // by default the git commit hash is appended for non-release builds, however overrides
             // will apply unconditionally
