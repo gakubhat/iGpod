@@ -1053,10 +1053,10 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
         val db = SyncDatabase.getInstance(applicationContext)
         val items = when (parentId) {
             ROOT_ID -> listOf(
-                categoryItem(HOME_ID, getString(R.string.app_name), MediaMetadata.MEDIA_TYPE_FOLDER_MIXED, iconRes = com.igeeta.igpod.R.drawable.ic_launcher_foreground),
+                categoryItem(HOME_ID, getString(R.string.app_name), MediaMetadata.MEDIA_TYPE_FOLDER_MIXED, iconRes = com.igeeta.igpod.R.drawable.ic_home),
                 categoryItem(ARTISTS_ID, getString(R.string.auto_artists), MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS, iconRes = com.igeeta.igpod.R.drawable.ic_person),
                 categoryItem(ALBUMS_ID, getString(R.string.auto_albums), MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS, iconRes = com.igeeta.igpod.R.drawable.ic_album),
-                categoryItem(RAAGAS_ID, "Raagas", MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS, iconRes = com.igeeta.igpod.R.drawable.ic_radio),
+                categoryItem(RAAGAS_ID, "Raagas", MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS, iconRes = com.igeeta.igpod.R.drawable.ic_song_note),
             )
             HOME_ID -> {
                 val recentlyPlayed = runBlocking { db.getRecentlyPlayedTracks(10) }
@@ -1128,13 +1128,13 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
                             radioManager.getTracksForPrahara(praharaNum).map { trackItem(it) }
                         }
                         "raaga" -> runBlocking {
-                            db.getTracksByRaag(value).map { trackItem(it) }
+                            db.getTracksByRaag(value).map { trackItem(it, "raaga:$value") }
                         }
                         "album" -> runBlocking {
-                            db.getAllTracks().filter { it.album == value }.map { trackItem(it) }
+                            db.getAllTracks().filter { it.album == value }.map { trackItem(it, "album:$value") }
                         }
                         "artist" -> runBlocking {
-                            db.getAllTracks().filter { parseArtists(it.artists).contains(value) }.map { trackItem(it) }
+                            db.getAllTracks().filter { parseArtists(it.artists).contains(value) }.map { trackItem(it, "artist:$value") }
                         }
                         "playlist" -> runBlocking {
                             db.getTracksByPlaylist(value.toIntOrNull() ?: -1).map { trackItem(it) }
@@ -1153,16 +1153,26 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
         mediaId: String
     ): ListenableFuture<LibraryResult<MediaItem>> {
         val db = SyncDatabase.getInstance(applicationContext)
-        if (mediaId.startsWith("Db:")) {
-            val hash = mediaId.removePrefix("Db:").toLongOrNull() ?: return Futures.immediateFuture(
-                LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
-            )
+        val hash = hashFromMediaId(mediaId)
+        if (hash != null) {
             val track = runBlocking { db.getAllTracks().firstOrNull { it.filePath.hashCode().toLong() == hash } }
             if (track != null) {
                 return Futures.immediateFuture(LibraryResult.ofItem(trackItem(track), null))
             }
         }
         return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE))
+    }
+
+    // Parses the trailing track hash from a mediaId:
+    // "Db:<hash>", "album:<name>:<hash>", "artist:<name>:<hash>", "raaga:<name>:<hash>".
+    private fun hashFromMediaId(mediaId: String): Long? {
+        val segments = mediaId.split(":")
+        if (segments.isEmpty()) return null
+        if (segments[0] == "Db") return segments[1].toLongOrNull()
+        if (segments[0] in setOf("album", "artist", "raaga") && segments.size >= 3) {
+            return segments.last().toLongOrNull()
+        }
+        return null
     }
 
     override fun onSetMediaItems(
@@ -1216,8 +1226,37 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
             }
         }
 
-        if (mediaId.startsWith("Db:")) {
-            val hash = mediaId.removePrefix("Db:").toLongOrNull() ?: return null
+        if (mediaId.startsWith("Db:") || mediaId.contains(":")) {
+            val db = SyncDatabase.getInstance(applicationContext)
+            // Context-tagged: "album:<name>:<hash>" / "artist:<name>:<hash>" /
+            // "raaga:<name>:<hash>" — expand to the full browsed category.
+            val segments = mediaId.split(":")
+            if (segments.size >= 3 && segments[0] in setOf("album", "artist", "raaga")) {
+                val kind = segments[0]
+                val hash = segments.last().toLongOrNull() ?: return null
+                val name = segments.subList(1, segments.size - 1).joinToString(":")
+                val track = runBlocking { db.getAllTracks().firstOrNull { it.filePath.hashCode().toLong() == hash } }
+                if (track != null) {
+                    val tracks = when (kind) {
+                        "album" -> runBlocking { db.getAllTracks().filter { it.album == name } }
+                        "artist" -> runBlocking { db.getAllTracks().filter { parseArtists(it.artists).contains(name) } }
+                        else -> runBlocking { db.getTracksByRaag(name) }
+                    }
+                    if (tracks.isNotEmpty()) {
+                        val items = tracks.map { trackItem(it, "$kind:$name") }
+                        val index = tracks.indexOfFirst { it.filePath == track.filePath }.coerceAtLeast(0)
+                        return MediaItemsWithStartPosition(items, index, 0)
+                    }
+                }
+                return null
+            }
+
+            val hash = if (mediaId.startsWith("Db:")) {
+                mediaId.removePrefix("Db:").toLongOrNull()
+            } else {
+                null
+            }
+            if (hash == null) return null
             val track = runBlocking { db.getAllTracks().firstOrNull { it.filePath.hashCode().toLong() == hash } }
             if (track != null) {
                 // Try playlist first
@@ -1250,12 +1289,10 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
                 item
             } else if (item.mediaId != MediaItem.DEFAULT_MEDIA_ID && item.mediaId.isNotEmpty()) {
                 val db = SyncDatabase.getInstance(applicationContext)
-                if (item.mediaId.startsWith("Db:")) {
-                    val hash = item.mediaId.removePrefix("Db:").toLongOrNull()
-                    if (hash != null) {
-                        val track = runBlocking { db.getAllTracks().firstOrNull { it.filePath.hashCode().toLong() == hash } }
-                        if (track != null) return@map trackItem(track)
-                    }
+                val hash = hashFromMediaId(item.mediaId)
+                if (hash != null) {
+                    val track = runBlocking { db.getAllTracks().firstOrNull { it.filePath.hashCode().toLong() == hash } }
+                    if (track != null) return@map trackItem(track)
                 }
                 item
             } else {
@@ -1353,11 +1390,15 @@ class IgpodPlaybackService : MediaLibraryService(), MediaSessionService.Listener
     // Builds a playable MediaItem for Android Auto from a SyncedTrack. Uses a
     // content:// artwork URI (served by IgpodAlbumArtProvider) so the head
     // unit can load art across process boundaries (app-private file:// won't work).
-    private fun trackItem(track: SyncedTrack): MediaItem {
+    // context: when the track is listed inside a browsed category (album/artist/
+    // raaga), the mediaId carries that context so a tap can expand the whole
+    // category into the queue. Format: "album:<name>:<hash>".
+    private fun trackItem(track: SyncedTrack, context: String? = null): MediaItem {
         val id = track.filePath.hashCode().toLong()
+        val mediaId = context?.let { "$it:$id" } ?: "Db:$id"
         val artists = parseArtists(track.artists).firstOrNull()
         return MediaItem.Builder()
-            .setMediaId("Db:$id")
+            .setMediaId(mediaId)
             .setUri(mediaStoreUriFor(track))
             .setMediaMetadata(
                 MediaMetadata.Builder()

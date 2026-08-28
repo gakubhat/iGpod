@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.util.removeSuffixIfPresent
 import java.util.Properties
 
 val aboutLibsVersion = "13.1.0" // keep in sync with plugin version
-val kotlinVersion = "2.3.0"
+val kotlinVersion = "2.3.21"
 
 plugins {
     id("com.android.application")
@@ -99,8 +99,8 @@ android {
         // Stock AndroidX Media 1.10.1 requires minSdk 23, so we follow that floor.
         minSdk = 31
         targetSdk = 36
-        versionCode = 25 // 23 registered on Play (with shortcuts.xml/App Actions); 24 removes App Actions
-        versionName = "1.2.1"
+        versionCode = 26
+        versionName = "1.3.0"
         if (releaseType != "Release" || versionNameSuffixOverride != null) {
             // by default the git commit hash is appended for non-release builds, however overrides
             // will apply unconditionally
@@ -300,7 +300,7 @@ aboutLibraries {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2025.09.00")
+    val composeBom = platform("androidx.compose:compose-bom:2026.06.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
     implementation("androidx.compose.material:material-icons-extended")
@@ -313,7 +313,7 @@ dependencies {
     implementation("androidx.collection:collection-ktx:1.5.0")
     implementation("androidx.concurrent:concurrent-futures-ktx:1.3.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
@@ -330,7 +330,7 @@ dependencies {
     implementation("com.mikepenz:aboutlibraries-compose-m3:$aboutLibsVersion")
     implementation("com.google.android.material:material:1.13.0")
     implementation("me.zhanghai.android.fastscroll:library:1.3.0")
-    val coilVersion = "3.4.0"
+    val coilVersion = "3.5.0"
     implementation("io.coil-kt.coil3:coil-compose:$coilVersion")
     lintChecks("io.coil-kt.coil3:coil-lint:$coilVersion")
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
@@ -341,7 +341,7 @@ dependencies {
     // --- iGeeta sync ---
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.13.1")
-    implementation("androidx.work:work-runtime-ktx:2.10.1")
+    implementation("androidx.work:work-runtime-ktx:2.11.2")
     // --- below does not apply to release builds ---
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
     testImplementation("junit:junit:4.13.2")
